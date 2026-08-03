@@ -33,7 +33,7 @@ retrieval is insufficient; cited URLs are exposed as clickable links.
 ## Quick start
 
 Prerequisites: Node.js 24, pnpm 11, Python 3.12+,
-[uv](https://docs.astral.sh/uv/), Docker, and an API key from OpenAI or
+uv, Docker, and an API key from OpenAI or
 OpenRouter.
 
 ```bash
@@ -74,17 +74,17 @@ into the same directory and replace the example profile details with your own.
 
 Once the résumé is in place, use these skills for your instance:
 
-- [`$bootstrap-personal-knowledge`](.agents/skills/bootstrap-personal-knowledge/SKILL.md)
+- [`bootstrap-personal-knowledge`](.agents/skills/bootstrap-personal-knowledge/SKILL.md)
   asks interview-style questions based on your résumé and turns your answers
   into knowledge documents. Building a detailed knowledge base can take several
   sessions, so voice input may be more comfortable than typing.
-- [`$bootstrap-public-knowledge`](.agents/skills/bootstrap-public-knowledge/SKILL.md)
+- [`bootstrap-public-knowledge`](.agents/skills/bootstrap-public-knowledge/SKILL.md)
   finds public sources connected to your work and records them in a research
   ledger.
-- [`$curate-public-knowledge`](.agents/skills/curate-public-knowledge/SKILL.md)
+- [`curate-public-knowledge`](.agents/skills/curate-public-knowledge/SKILL.md)
   lets you review the research ledger and turns accepted material into
   knowledge documents.
-- [`$generate-resume-bridges`](.agents/skills/generate-resume-bridges/SKILL.md)
+- [`generate-resume-bridges`](.agents/skills/generate-resume-bridges/SKILL.md)
   creates compact résumé-based summaries that improve retrieval when an
   answer draws on information from several sections.
 
