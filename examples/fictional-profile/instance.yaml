@@ -14,6 +14,7 @@ suggested_questions:
   - Tell me about the hardest system you built at Northstar Mobility.
   - How did Lantern change the way your team investigated incidents?
   - Explain Harbor like I'm new to robot localization.
+  - Why did you choose an append-only event model for Lantern?
 
 links:
   public_profile: https://example.com/rowan-vale

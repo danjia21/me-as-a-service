@@ -25,7 +25,7 @@ from me_as_a_service.chat.types import (
     StoredMessage,
     TurnAnalysis,
 )
-from me_as_a_service.knowledge.models import Passage
+from me_as_a_service.knowledge.models import FurtherReading, Passage
 
 
 def test_langsmith_runtime_version_is_pinned() -> None:
@@ -301,6 +301,33 @@ def test_openai_web_search_returns_clickable_citations_and_links() -> None:
     asyncio.run(exercise())
 
 
+def test_openrouter_web_search_uses_server_tool() -> None:
+    async def exercise() -> None:
+        fake = FakeClient()
+        model = OpenAIChatModel(
+            cast(AsyncOpenAI, fake),
+            model="test-model",
+            prompts=load_prompts(),
+            web_search_tool_type="openrouter:web_search",
+        )
+
+        await model.search_web("Who is the head of RPG?", "Who leads RPG?")
+
+        request = fake.responses.request
+        assert request is not None
+        assert request["tools"] == [{"type": "openrouter:web_search"}]
+
+    asyncio.run(exercise())
+
+
+def test_web_citation_without_title_uses_url_as_label() -> None:
+    citation = SimpleNamespace(url="https://example.com")
+
+    assert model_module._web_citation_links((citation,)) == (
+        FurtherReading(label="https://example.com", url="https://example.com"),
+    )
+
+
 @pytest.mark.parametrize(
     ("section_path", "expected_section"),
     (
@@ -408,9 +435,10 @@ def test_langsmith_is_disabled_by_default_and_does_not_wrap_openai(
     wrapped = False
 
     class ConstructorFake(FakeClient):
-        def __init__(self, *, api_key: str) -> None:
+        def __init__(self, *, api_key: str, base_url: str | None) -> None:
             super().__init__()
             self.api_key = api_key
+            self.base_url = base_url
 
     def fail_if_wrapped(client: object, **_: object) -> object:
         nonlocal wrapped
@@ -426,7 +454,7 @@ def test_langsmith_is_disabled_by_default_and_does_not_wrap_openai(
     model = openai_model_from_environment(tracing, load_prompts())
 
     assert not tracing.enabled
-    assert model.model == "gpt-5.4-mini-2026-03-17"
+    assert model.model == "gpt-5.6-luna"
     assert not wrapped
 
 
@@ -440,6 +468,41 @@ def test_openai_key_is_required_for_runtime_generation(
         openai_model_from_environment(tracing, load_prompts())
 
 
+def test_openrouter_configuration_uses_compatible_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MAAS_LLM_PROVIDER", "openrouter")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "openrouter-key")
+    monkeypatch.delenv("MAAS_LLM_MODEL", raising=False)
+    created: dict[str, object] = {}
+
+    class ConstructorFake(FakeClient):
+        def __init__(self, *, api_key: str, base_url: str | None) -> None:
+            super().__init__()
+            created["api_key"] = api_key
+            created["base_url"] = base_url
+
+    monkeypatch.setattr(model_module, "AsyncOpenAI", ConstructorFake)
+    tracing = model_module.LangSmithTracing(False, None, "test", (), {})
+
+    model = openai_model_from_environment(tracing, load_prompts())
+
+    assert model.model == "deepseek/deepseek-v4-flash"
+    assert created == {
+        "api_key": "openrouter-key",
+        "base_url": "https://openrouter.ai/api/v1",
+    }
+    assert model._web_search_tool_type == "openrouter:web_search"
+
+
+def test_unknown_llm_provider_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MAAS_LLM_PROVIDER", "unsupported")
+    tracing = model_module.LangSmithTracing(False, None, "test", (), {})
+
+    with pytest.raises(RuntimeError, match="MAAS_LLM_PROVIDER"):
+        openai_model_from_environment(tracing, load_prompts())
+
+
 def test_enabled_langsmith_wraps_the_single_openai_client(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -448,9 +511,10 @@ def test_enabled_langsmith_wraps_the_single_openai_client(
     wrapped: dict[str, object] = {}
 
     class ConstructorFake(FakeClient):
-        def __init__(self, *, api_key: str) -> None:
+        def __init__(self, *, api_key: str, base_url: str | None) -> None:
             super().__init__()
             self.api_key = api_key
+            self.base_url = base_url
 
     def capture_wrap(client: object, **kwargs: object) -> object:
         wrapped["client"] = client

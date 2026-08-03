@@ -6,7 +6,7 @@ import os
 from collections.abc import AsyncIterator, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from langsmith import Client, tracing_context
 from langsmith.wrappers import wrap_openai
@@ -24,7 +24,9 @@ from me_as_a_service.chat.types import (
 )
 from me_as_a_service.knowledge.models import FurtherReading, Passage
 
-DEFAULT_OPENAI_MODEL = "gpt-5.4-mini-2026-03-17"
+DEFAULT_OPENAI_MODEL = "gpt-5.6-luna"
+DEFAULT_OPENROUTER_MODEL = "deepseek/deepseek-v4-flash"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_MAX_OUTPUT_TOKENS = 300
 EVIDENCE_JUDGE_MAX_OUTPUT_TOKENS = 1024
 DEFAULT_LANGSMITH_PROJECT = "me-as-a-service"
@@ -95,7 +97,7 @@ class _StructuredTurnAnalysis(BaseModel):
 
 
 class OpenAIChatModel:
-    """All production model calls through one native OpenAI client."""
+    """Production model calls through one OpenAI-compatible SDK client."""
 
     def __init__(
         self,
@@ -104,6 +106,7 @@ class OpenAIChatModel:
         model: str,
         prompts: PromptSet,
         max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
+        web_search_tool_type: str = "web_search",
     ) -> None:
         if max_output_tokens < 1:
             raise ValueError("max_output_tokens must be positive")
@@ -111,6 +114,7 @@ class OpenAIChatModel:
         self._client = client
         self._prompts = prompts
         self._max_output_tokens = max_output_tokens
+        self._web_search_tool_type = web_search_tool_type
 
     async def analyze_turn(
         self,
@@ -187,11 +191,15 @@ class OpenAIChatModel:
         return EvidenceAssessment.model_validate_json(content)
 
     async def search_web(self, question: str, query: str) -> WebSearchResult:
-        response = await self._client.responses.create(
+        web_search_tool: dict[str, Any] = {"type": self._web_search_tool_type}
+        if self._web_search_tool_type == "web_search":
+            web_search_tool["search_context_size"] = "low"
+        responses = cast(Any, self._client.responses)
+        response = await responses.create(
             model=self.model,
             instructions=self._prompts.web_grounded,
             input=(f"Standalone search query:\n{query}\n\nUser question:\n{question}"),
-            tools=[{"type": "web_search", "search_context_size": "low"}],
+            tools=[web_search_tool],
             tool_choice="required",
             max_tool_calls=1,
             parallel_tool_calls=False,
@@ -271,7 +279,11 @@ def _web_citation_links(citations: tuple[Any, ...]) -> tuple[FurtherReading, ...
         if citation.url in seen:
             continue
         seen.add(citation.url)
-        links.append(FurtherReading(label=citation.title, url=citation.url))
+        links.append(
+            FurtherReading(
+                label=getattr(citation, "title", citation.url), url=citation.url
+            )
+        )
     return tuple(links)
 
 
@@ -405,11 +417,25 @@ def openai_model_from_environment(
     tracing: LangSmithTracing,
     prompts: PromptSet,
 ) -> OpenAIChatModel:
-    api_key = os.getenv("OPENAI_API_KEY")
+    provider = os.getenv("MAAS_LLM_PROVIDER", "openai").casefold()
+    if provider == "openai":
+        api_key_name = "OPENAI_API_KEY"
+        default_model = DEFAULT_OPENAI_MODEL
+        base_url = None
+        web_search_tool_type = "web_search"
+    elif provider == "openrouter":
+        api_key_name = "OPENROUTER_API_KEY"
+        default_model = DEFAULT_OPENROUTER_MODEL
+        base_url = OPENROUTER_BASE_URL
+        web_search_tool_type = "openrouter:web_search"
+    else:
+        raise RuntimeError("MAAS_LLM_PROVIDER must be either 'openai' or 'openrouter'")
+
+    api_key = os.getenv(api_key_name)
     if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is required for hosted generation")
-    model = os.getenv("MAAS_LLM_MODEL", DEFAULT_OPENAI_MODEL)
-    native_client = AsyncOpenAI(api_key=api_key)
+        raise RuntimeError(f"{api_key_name} is required for hosted generation")
+    model = os.getenv("MAAS_LLM_MODEL", default_model)
+    native_client = AsyncOpenAI(api_key=api_key, base_url=base_url)
     client = native_client
     if tracing.enabled:
         try:
@@ -427,6 +453,7 @@ def openai_model_from_environment(
         client,
         model=model,
         prompts=prompts,
+        web_search_tool_type=web_search_tool_type,
         max_output_tokens=int(
             os.getenv("MAAS_MAX_OUTPUT_TOKENS", str(DEFAULT_MAX_OUTPUT_TOKENS))
         ),
