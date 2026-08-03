@@ -1,0 +1,30 @@
+aws_region        = "us-east-1"
+availability_zone = "us-east-1a"
+project_name      = "maas-example"
+
+# Confirm current IDs with:
+# aws lightsail get-blueprints --region us-east-1
+# aws lightsail get-bundles --region us-east-1
+lightsail_blueprint_id  = "ubuntu_24_04"
+lightsail_bundle_id     = "small_3_0"
+lightsail_key_pair_name = null
+
+ip_address_type = "dualstack"
+ssh_port        = 22
+ssh_ipv4_cidrs  = ["198.51.100.24/32"]
+ssh_ipv6_cidrs  = []
+
+backup_bucket_name = "replace-with-a-globally-unique-private-bucket"
+backup_user_name   = "maas-example-restic"
+
+# Supply both values to manage an A record in Route 53, or leave both null.
+route53_zone_id = null
+domain_name     = null
+
+budget_name                = "maas-example-monthly"
+monthly_budget_usd          = 40
+budget_notification_emails = ["operator@example.net"]
+
+tags = {
+  Environment = "staging"
+}

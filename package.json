@@ -1,0 +1,33 @@
+{
+  "name": "me-as-a-service",
+  "private": true,
+  "packageManager": "pnpm@11.15.1",
+  "scripts": {
+    "dev": "pnpm --parallel --recursive --if-present run dev",
+    "dev:api": "pnpm --filter @me-as-a-service/api dev",
+    "dev:web": "pnpm --filter @me-as-a-service/web dev",
+    "eval:routing": "pnpm --filter @me-as-a-service/api eval:routing",
+    "build": "pnpm --recursive --if-present run build",
+    "check": "pnpm lint && pnpm test",
+    "lint": "pnpm --recursive --if-present run lint",
+    "lint:api": "pnpm --filter @me-as-a-service/api lint",
+    "test": "pnpm --recursive --if-present run test",
+    "test:api": "pnpm --filter @me-as-a-service/api test",
+    "check:private": "pnpm --filter @me-as-a-service/api test:private",
+    "prepare": "husky",
+    "format": "prettier --write . && pnpm --filter @me-as-a-service/api exec uv run ruff format .",
+    "format:check": "prettier --check . && pnpm --filter @me-as-a-service/api exec uv run ruff format --check ."
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,yml,yaml,md,css}": "prettier --write",
+    "*.py": "uv --directory apps/api run ruff format"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.1.1",
+    "prettier": "^3.9.6"
+  }
+}

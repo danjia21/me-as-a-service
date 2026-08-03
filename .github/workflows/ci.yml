@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  public-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          uv sync --project apps/api --all-groups --locked
+
+      - name: Scan public history
+        if: github.event.repository.visibility == 'public'
+        run: node scripts/release/scan-public-tree.mjs . --history
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint and test
+        run: pnpm check
+
+      - name: Build
+        env:
+          MAAS_INSTANCE_DIR: examples/fictional-profile
+        run: pnpm build

@@ -1,0 +1,43 @@
+[project]
+name = "me-as-a-service-api"
+version = "0.1.0"
+description = "Evidence-grounded interview agent API"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.116,<1",
+    "langsmith==0.10.14",
+    "openai>=2,<3",
+    "prometheus-client>=0.22,<1",
+    "psycopg[binary]>=3.2,<4",
+    "pyyaml>=6,<7",
+    "python-dotenv>=1,<2",
+    "tantivy==0.26.0",
+    "uvicorn[standard]>=0.35,<1",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2,<3",
+    "mypy>=1.17,<2",
+    "pytest>=8.4,<9",
+    "ruff>=0.12,<1",
+    "types-pyyaml>=6,<7",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true

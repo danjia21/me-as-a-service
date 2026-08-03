@@ -1,0 +1,110 @@
+groups:
+  - name: maas-production
+    rules:
+      - alert: ScrapeTargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus target {{ $labels.job }} is down"
+          description: "The {{ $labels.instance }} target has failed scrapes for two minutes."
+
+      - alert: PersistenceUnavailable
+        expr: maas_persistence_ready == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Application persistence is unavailable"
+          description: "The API cannot reach required conversation or trace persistence."
+
+      - alert: SustainedHttp5xxRate
+        expr: |
+          (
+            sum(rate(traefik_entrypoint_requests_total{entrypoint="websecure",code=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(traefik_entrypoint_requests_total{entrypoint="websecure"}[5m])), 0.001)
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Public HTTP 5xx rate is above 5%"
+
+      - alert: SustainedChatFailureRate
+        expr: |
+          (
+            sum(rate(maas_chat_outcomes_total{outcome="failed"}[5m]))
+            /
+            clamp_min(sum(rate(maas_chat_outcomes_total[5m])), 0.001)
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Chat failure rate is above 5%"
+
+      - alert: RepeatedQueueSaturation
+        expr: increase(maas_chat_outcomes_total{outcome="queue_saturated"}[10m]) >= 3
+        labels:
+          severity: warning
+        annotations:
+          summary: "The model-turn queue is repeatedly saturated"
+
+      - alert: DailyTokenBudgetHigh
+        expr: maas_model_tokens_today / clamp_min(maas_model_daily_token_budget, 1) >= 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Daily model token usage is over 80% of budget"
+
+      - alert: HostMemoryPressure
+        expr: 1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host memory usage is over 90%"
+
+      - alert: HostDiskSpaceLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"}
+            /
+            node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"}
+          ) < 0.15
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Host root filesystem has less than 15% free space"
+
+      - alert: BackupFailed
+        expr: maas_backup_last_run_success == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "The latest PostgreSQL backup failed"
+
+      - alert: BackupMissingOrStale
+        expr: |
+          absent(maas_backup_last_success_timestamp_seconds)
+          or (time() - maas_backup_last_success_timestamp_seconds > 93600)
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No successful PostgreSQL backup exists in the last 26 hours"
+
+  - name: maas-alert-test
+    rules:
+      - alert: MaasDeploymentTestAlert
+        expr: vector(0)
+        labels:
+          severity: test
+        annotations:
+          summary: "Disabled deployment test alert"
+          description: "Change vector(0) to vector(1), reload Prometheus, and verify delivery before launch."

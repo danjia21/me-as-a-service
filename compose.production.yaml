@@ -1,0 +1,264 @@
+services:
+  postgres:
+    image: postgres:18.4-alpine3.22
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    ports: !reset []
+    networks:
+      - backend
+    restart: unless-stopped
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    logging: &bounded-logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      MAAS_CONVERSATION_STORE: postgres
+      MAAS_CONVERSATION_RETENTION_HOURS: ${MAAS_CONVERSATION_RETENTION_HOURS:-24}
+      MAAS_DAILY_TOKEN_BUDGET: ${MAAS_DAILY_TOKEN_BUDGET:-100000}
+      MAAS_ENVIRONMENT: production
+      MAAS_GRACEFUL_SHUTDOWN_SECONDS: ${MAAS_GRACEFUL_SHUTDOWN_SECONDS:-30}
+      MAAS_IP_RATE_LIMIT_REQUESTS: ${MAAS_IP_RATE_LIMIT_REQUESTS:-30}
+      MAAS_INSTANCE_DIR: /app/instance
+      MAAS_MAX_CONCURRENT_TURNS: ${MAAS_MAX_CONCURRENT_TURNS:-4}
+      MAAS_MAX_OUTPUT_TOKENS: ${MAAS_MAX_OUTPUT_TOKENS:-300}
+      MAAS_MAX_QUEUED_TURNS: ${MAAS_MAX_QUEUED_TURNS:-8}
+      MAAS_MAX_TURNS_PER_CONVERSATION: ${MAAS_MAX_TURNS_PER_CONVERSATION:-20}
+      MAAS_METRICS_BEARER_TOKEN_FILE: /run/secrets/metrics_bearer_token
+      MAAS_PROXY_SHARED_SECRET: ${MAAS_PROXY_SHARED_SECRET:?Set MAAS_PROXY_SHARED_SECRET}
+      MAAS_QUEUE_TIMEOUT_SECONDS: ${MAAS_QUEUE_TIMEOUT_SECONDS:-15}
+      MAAS_RATE_LIMIT_WINDOW_SECONDS: ${MAAS_RATE_LIMIT_WINDOW_SECONDS:-60}
+      MAAS_SESSION_RATE_LIMIT_REQUESTS: ${MAAS_SESSION_RATE_LIMIT_REQUESTS:-12}
+      MAAS_LLM_MODEL: ${MAAS_LLM_MODEL:?Set MAAS_LLM_MODEL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY}
+      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-me-as-a-service}
+      LANGSMITH_ENDPOINT: ${LANGSMITH_ENDPOINT:-}
+      LANGSMITH_WORKSPACE_ID: ${LANGSMITH_WORKSPACE_ID:-}
+    secrets:
+      - metrics_bearer_token
+    volumes:
+      - ${MAAS_INSTANCE_DIR_HOST:-./examples/fictional-profile}:/app/instance:ro
+    networks:
+      - backend
+      - egress
+      - monitoring
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    restart: unless-stopped
+    stop_grace_period: 35s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+    logging: *bounded-logging
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        CLOUDFLARE_ANALYTICS_SITE_TOKEN: ${CLOUDFLARE_ANALYTICS_SITE_TOKEN:?Set CLOUDFLARE_ANALYTICS_SITE_TOKEN}
+    environment:
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:?Set CLOUDFLARE_ACCOUNT_ID}
+      CLOUDFLARE_ANALYTICS_API_TOKEN: ${CLOUDFLARE_ANALYTICS_API_TOKEN:?Set CLOUDFLARE_ANALYTICS_API_TOKEN}
+      CLOUDFLARE_ANALYTICS_SITE_TOKEN: ${CLOUDFLARE_ANALYTICS_SITE_TOKEN:?Set CLOUDFLARE_ANALYTICS_SITE_TOKEN}
+      MAAS_API_BASE_URL: http://api:8000
+      MAAS_DOMAIN: ${MAAS_DOMAIN:?Set MAAS_DOMAIN}
+      MAAS_INSTANCE_DIR: /app/instance
+      MAAS_PROXY_SHARED_SECRET: ${MAAS_PROXY_SHARED_SECRET:?Set MAAS_PROXY_SHARED_SECRET}
+      NODE_ENV: production
+    networks:
+      - backend
+      - edge
+    volumes:
+      - ${MAAS_INSTANCE_DIR_HOST:-./examples/fictional-profile}:/app/instance:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    restart: unless-stopped
+    stop_grace_period: 35s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    logging: *bounded-logging
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${MAAS_DOCKER_NETWORK_PREFIX:-maas}-edge
+      - traefik.http.services.maas-web.loadbalancer.server.port=3000
+      - traefik.http.services.maas-web.loadbalancer.healthcheck.path=/
+      - traefik.http.services.maas-web.loadbalancer.healthcheck.interval=15s
+      - traefik.http.routers.maas-app.rule=Host(`${MAAS_DOMAIN:?Set MAAS_DOMAIN}`)
+      - traefik.http.routers.maas-app.entrypoints=websecure
+      - traefik.http.routers.maas-app.tls=true
+      - traefik.http.routers.maas-app.tls.certresolver=letsencrypt
+      - traefik.http.routers.maas-app.middlewares=maas-security
+      - traefik.http.routers.maas-chat.rule=Host(`${MAAS_DOMAIN:?Set MAAS_DOMAIN}`) && Path(`/api/chat`)
+      - traefik.http.routers.maas-chat.priority=100
+      - traefik.http.routers.maas-chat.entrypoints=websecure
+      - traefik.http.routers.maas-chat.tls=true
+      - traefik.http.routers.maas-chat.tls.certresolver=letsencrypt
+      - traefik.http.routers.maas-chat.middlewares=maas-chat-body,maas-chat-rate,maas-chat-inflight,maas-security
+      - traefik.http.middlewares.maas-chat-body.buffering.maxRequestBodyBytes=8192
+      - traefik.http.middlewares.maas-chat-body.buffering.memRequestBodyBytes=8192
+      - traefik.http.middlewares.maas-chat-rate.ratelimit.average=60
+      - traefik.http.middlewares.maas-chat-rate.ratelimit.period=1m
+      - traefik.http.middlewares.maas-chat-rate.ratelimit.burst=20
+      - traefik.http.middlewares.maas-chat-inflight.inflightreq.amount=16
+      - traefik.http.middlewares.maas-security.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.maas-security.headers.frameDeny=true
+      - traefik.http.middlewares.maas-security.headers.permissionsPolicy=camera=(), microphone=(), geolocation=()
+      - traefik.http.middlewares.maas-security.headers.referrerPolicy=no-referrer
+      - traefik.http.middlewares.maas-security.headers.stsSeconds=31536000
+      - traefik.http.middlewares.maas-security.headers.stsIncludeSubdomains=true
+
+  traefik:
+    image: traefik:v3.6.7
+    command:
+      - --global.checknewversion=false
+      - --global.sendanonymoususage=false
+      - --api.dashboard=false
+      - --api.insecure=false
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.watch=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.forwardedheaders.insecure=false
+      - --entrypoints.metrics.address=:8082
+      - --metrics.prometheus.entrypoint=metrics
+      - --metrics.prometheus.addentrypointslabels=true
+      - --metrics.prometheus.addrouterslabels=true
+      - --metrics.prometheus.addserviceslabels=true
+      - --ping.entrypoint=metrics
+      - --log.level=INFO
+      - --log.format=json
+      - --accesslog=true
+      - --accesslog.format=json
+      - --accesslog.fields.defaultmode=keep
+      - --accesslog.fields.names.ClientAddr=drop
+      - --accesslog.fields.names.ClientHost=drop
+      - --accesslog.fields.names.ClientPort=drop
+      - --accesslog.fields.names.RequestAddr=drop
+      - --accesslog.fields.names.RequestHost=keep
+      - --accesslog.fields.names.RequestPath=keep
+      - --accesslog.fields.names.RequestProtocol=keep
+      - --accesslog.fields.names.RequestScheme=keep
+      - --accesslog.fields.names.RouterName=keep
+      - --accesslog.fields.names.ServiceName=keep
+      - --accesslog.fields.headers.defaultmode=drop
+      - --certificatesresolvers.letsencrypt.acme.email=${MAAS_ACME_EMAIL:?Set MAAS_ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.storage=/acme/acme.json
+      - --entrypoints.websecure.forwardedheaders.trustedips=${MAAS_TRAEFIK_TRUSTED_IPS:-127.0.0.1/32}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - maas-acme:/acme
+    networks:
+      - edge
+      - monitoring
+    depends_on:
+      web:
+        condition: service_healthy
+    read_only: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 192M
+    logging: *bounded-logging
+
+  backup:
+    build:
+      context: .
+      dockerfile: deploy/backup/Dockerfile
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?Set AWS_ACCESS_KEY_ID}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?Set AWS_SECRET_ACCESS_KEY}
+      MAAS_BACKUP_RETENTION_DAILY: ${MAAS_BACKUP_RETENTION_DAILY:-7}
+      MAAS_BACKUP_RETENTION_WEEKLY: ${MAAS_BACKUP_RETENTION_WEEKLY:-4}
+      PGDATABASE: ${POSTGRES_DB:?Set POSTGRES_DB}
+      PGHOST: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      PGUSER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      RESTIC_PASSWORD_FILE: /run/secrets/restic_password
+      RESTIC_CACHE_DIR: /var/cache/restic
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:?Set RESTIC_REPOSITORY}
+    secrets:
+      - restic_password
+    volumes:
+      - backup-cache:/var/cache/restic
+      - backup-metrics:/var/lib/node_exporter/textfile_collector
+    networks:
+      - backend
+      - egress
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+      - /run:size=8m
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 384M
+    logging: *bounded-logging
+
+networks:
+  backend:
+    name: ${MAAS_DOCKER_NETWORK_PREFIX:-maas}-backend
+    internal: true
+  edge:
+    name: ${MAAS_DOCKER_NETWORK_PREFIX:-maas}-edge
+  egress:
+    name: ${MAAS_DOCKER_NETWORK_PREFIX:-maas}-egress
+  monitoring:
+    name: ${MAAS_DOCKER_NETWORK_PREFIX:-maas}-monitoring
+    internal: true
+
+volumes:
+  backup-cache:
+  backup-metrics:
+  maas-acme:
+
+secrets:
+  metrics_bearer_token:
+    file: ${MAAS_METRICS_BEARER_TOKEN_FILE_HOST:?Set MAAS_METRICS_BEARER_TOKEN_FILE_HOST}
+  restic_password:
+    file: ${RESTIC_PASSWORD_FILE_HOST:?Set RESTIC_PASSWORD_FILE_HOST}

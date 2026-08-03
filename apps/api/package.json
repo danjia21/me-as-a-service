@@ -1,0 +1,11 @@
+{
+  "name": "@me-as-a-service/api",
+  "private": true,
+  "scripts": {
+    "dev": "uv run uvicorn me_as_a_service.api:app --app-dir src --reload",
+    "eval:routing": "PYTHONPATH=src uv run python -m me_as_a_service.evaluation.routing",
+    "lint": "uv run ruff check . && uv run mypy src tests",
+    "test": "uv run pytest",
+    "test:private": "PYTHONPATH=src uv run pytest ../../private/tests"
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bootstrap evaluation questions"
+  short_description: "Create grounded router and retrieval test cases"
+  default_prompt: "Use $evaluation-question-bootstrap to create or expand the selected instance's optional evaluations/questions.yaml fixture."

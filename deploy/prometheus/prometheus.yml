@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090
+
+  - job_name: traefik
+    static_configs:
+      - targets:
+          - traefik:8082
+
+  - job_name: api
+    metrics_path: /metrics
+    authorization:
+      credentials_file: /run/secrets/metrics_bearer_token
+    static_configs:
+      - targets:
+          - api:8000
+
+  - job_name: node
+    static_configs:
+      - targets:
+          - node-exporter:9100
