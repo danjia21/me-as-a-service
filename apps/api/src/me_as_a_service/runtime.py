@@ -8,6 +8,7 @@ import uvicorn
 
 from me_as_a_service.chat.model import (
     DEFAULT_OPENAI_MODEL,
+    DEFAULT_OPENROUTER_MODEL,
     openai_model_from_environment,
     tracing_from_environment,
 )
@@ -104,7 +105,12 @@ def build_chat_workflow(
     *, instance: Instance, retriever: EvidenceRetriever
 ) -> ChatWorkflow:
     prompts = load_prompts()
-    model_name = os.getenv("MAAS_LLM_MODEL", DEFAULT_OPENAI_MODEL)
+    default_model = (
+        DEFAULT_OPENROUTER_MODEL
+        if os.getenv("MAAS_LLM_PROVIDER", "openai").casefold() == "openrouter"
+        else DEFAULT_OPENAI_MODEL
+    )
+    model_name = os.getenv("MAAS_LLM_MODEL", default_model)
     tracing = tracing_from_environment(
         instance_id=instance.config.id,
         model=model_name,
