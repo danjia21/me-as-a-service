@@ -27,7 +27,7 @@ WORKDIR /app
 COPY --from=builder /build/apps/api/.venv /app/.venv
 COPY --chown=maas:maas apps/api/src /app/apps/api/src
 COPY --chown=maas:maas apps/api/migrations /app/apps/api/migrations
-COPY --chown=maas:maas examples/fictional-profile /app/examples/fictional-profile
+COPY --chown=maas:maas instance/example /app/instance/example
 
 USER 10001:10001
 

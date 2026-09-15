@@ -1,0 +1,6 @@
+# Imported and generated initializer data is checksum-sensitive.
+instance/*/inputs/
+instance/*/sources/
+instance/*/workspace/
+instance/*/published/
+instance/*/index/

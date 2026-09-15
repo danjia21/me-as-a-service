@@ -20,14 +20,6 @@ const ALLOWED_MARKDOWN_ELEMENTS = [
   "a",
 ];
 
-function linkHost(url: string) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "";
-  }
-}
-
 function compactLinkDestination(url: string) {
   try {
     const parsed = new URL(url);
@@ -137,29 +129,6 @@ export function ChatTranscript({
                   </ReactMarkdown>
                 </div>
               )}
-              {message.status === "complete" && message.furtherReading ? (
-                <aside className={styles.furtherReading}>
-                  <p
-                    className={styles.furtherReadingLabel}
-                    id={`further-reading-${message.id}`}
-                  >
-                    Further reading
-                  </p>
-                  <ul aria-labelledby={`further-reading-${message.id}`}>
-                    {message.furtherReading.map((link) => (
-                      <li key={link.url}>
-                        <a href={link.url} rel="noreferrer" target="_blank">
-                          <span className={styles.linkLabel}>{link.label}</span>
-                          <span className={styles.linkHost}>
-                            {linkHost(link.url)}
-                          </span>
-                          <OutboundIcon className={styles.linkIcon} />
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </aside>
-              ) : null}
               {message.status === "failed" ? (
                 <button
                   className={styles.retry}

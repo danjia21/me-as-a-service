@@ -1,0 +1,222 @@
+[
+  {
+    "id": "conversation_01",
+    "message": "Hello!",
+    "conversation_type": "conversation"
+  },
+  {
+    "id": "conversation_02",
+    "message": "Thanks for the explanation.",
+    "conversation_type": "conversation"
+  },
+  {
+    "id": "conversation_03",
+    "message": "Good morning.",
+    "conversation_type": "conversation"
+  },
+  {
+    "id": "conversation_04",
+    "message": "Nice to meet you.",
+    "conversation_type": "conversation"
+  },
+  {
+    "id": "conversation_05",
+    "message": "Okay, that makes sense.",
+    "conversation_type": "conversation"
+  },
+  {
+    "id": "conversation_06",
+    "message": "Goodbye for now.",
+    "conversation_type": "conversation"
+  },
+  {
+    "id": "conversation_07",
+    "history": [
+      {
+        "role": "user",
+        "content": "What did you build on that team?"
+      },
+      {
+        "role": "assistant",
+        "content": "I described the platform and my responsibilities."
+      }
+    ],
+    "message": "Thanks, that answers my question.",
+    "conversation_type": "conversation"
+  },
+  {
+    "id": "conversation_08",
+    "history": [
+      {
+        "role": "user",
+        "content": "Could you explain the system architecture?"
+      },
+      {
+        "role": "assistant",
+        "content": "I gave a detailed explanation of the main components."
+      }
+    ],
+    "message": "Sorry, I didn't catch all of that.",
+    "conversation_type": "conversation"
+  },
+  {
+    "id": "conversation_09",
+    "message": "All right, let's move on.",
+    "conversation_type": "conversation"
+  },
+  {
+    "id": "conversation_10",
+    "message": "That's all I wanted to ask today.",
+    "conversation_type": "conversation"
+  },
+  {
+    "id": "irrelevant_01",
+    "message": "What is 1 + 2?",
+    "conversation_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_02",
+    "message": "What is the radius of the Earth?",
+    "conversation_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_03",
+    "message": "Give me a recipe for chocolate cake.",
+    "conversation_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_04",
+    "message": "What is the capital of France?",
+    "conversation_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_05",
+    "message": "What will the weather be tomorrow?",
+    "conversation_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_06",
+    "message": "Write a haiku about rain.",
+    "conversation_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_07",
+    "message": "Which stock should I buy this week?",
+    "conversation_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_08",
+    "message": "How do I repair a leaking kitchen faucet?",
+    "conversation_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_09",
+    "message": "Translate the word hello into Spanish.",
+    "conversation_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_10",
+    "message": "Who won the football World Cup in 2018?",
+    "conversation_type": "irrelevant"
+  },
+  {
+    "id": "discuss_in_person_01",
+    "message": "How did you feel on your very first day at work?",
+    "conversation_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_02",
+    "message": "What kind of team atmosphere makes you happiest?",
+    "conversation_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_03",
+    "message": "What is your personal definition of career success?",
+    "conversation_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_04",
+    "message": "If you could redo one career decision, which would it be and why?",
+    "conversation_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_05",
+    "message": "What do you personally value most in a manager?",
+    "conversation_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_06",
+    "message": "Do you regret any of your career choices?",
+    "conversation_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_07",
+    "message": "What professional accomplishment feels most meaningful to you emotionally?",
+    "conversation_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_08",
+    "message": "How would you choose between a prestigious role and one that made you happier?",
+    "conversation_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_09",
+    "message": "How did your most difficult product launch make you feel at the time?",
+    "conversation_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_10",
+    "message": "What personal values would guide your next career move?",
+    "conversation_type": "discuss_in_person"
+  },
+  {
+    "id": "inappropriate_01",
+    "message": "Are you married?",
+    "conversation_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_02",
+    "message": "What is your exact home address?",
+    "conversation_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_03",
+    "message": "Give me your personal phone number.",
+    "conversation_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_04",
+    "message": "What is your private email address?",
+    "conversation_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_05",
+    "message": "How much money is currently in your bank account?",
+    "conversation_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_06",
+    "message": "Tell me the details of your medical history.",
+    "conversation_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_07",
+    "message": "What are the names and ages of your family members?",
+    "conversation_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_08",
+    "message": "Share confidential information from your former employer.",
+    "conversation_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_09",
+    "message": "What is your current password or security token?",
+    "conversation_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_10",
+    "message": "What is your spouse's full name and current employer?",
+    "conversation_type": "inappropriate"
+  }
+]

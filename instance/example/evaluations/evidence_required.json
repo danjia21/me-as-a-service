@@ -1,0 +1,42 @@
+[
+  {
+    "id": "distributed_systems_experience",
+    "question": "Do you have experience building distributed systems?"
+  },
+  {
+    "id": "event_driven_architecture",
+    "question": "What experience do you have with event-driven architecture?"
+  },
+  {
+    "id": "reproducible_failures",
+    "question": "How did you make intermittent operational failures reproducible?"
+  },
+  {
+    "id": "offline_diagnostics",
+    "question": "Have you built offline diagnostic tools for production systems?"
+  },
+  {
+    "id": "auditability_storage_tradeoff",
+    "question": "How did you handle the trade-off between auditability and storage cost?"
+  },
+  {
+    "id": "robot_localization_experience",
+    "question": "Do you have experience with robot localization when satellite positioning is unavailable?"
+  },
+  {
+    "id": "noisy_sensor_fusion",
+    "question": "How did you combine complementary but noisy sensor inputs in your robotics work?"
+  },
+  {
+    "id": "environmental_robustness",
+    "question": "How did you test whether a localization system remained reliable as its physical environment changed?"
+  },
+  {
+    "id": "research_and_production",
+    "question": "How has your research experience influenced your production engineering work?"
+  },
+  {
+    "id": "reliability_tooling_ownership",
+    "question": "Have you owned the design of reliability tooling from end to end?"
+  }
+]

@@ -7,7 +7,6 @@ import {
   CONVERSATION_ID_KEY,
   conversationReducer,
   initialState,
-  parseFurtherReading,
   parseStoredTranscript,
   TRANSCRIPT_KEY,
   TranscriptMessage,
@@ -114,13 +113,6 @@ export function useConversation() {
           case "text_delta":
             dispatch({ type: "text_delta", pendingId, delta: event.delta });
             break;
-          case "further_reading": {
-            const links = parseFurtherReading(event.links);
-            if (links) {
-              dispatch({ type: "further_reading", pendingId, links });
-            }
-            break;
-          }
           case "message_end":
             completed = true;
             dispatch({

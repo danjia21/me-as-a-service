@@ -1,8 +1,3 @@
-export type FurtherReadingLink = {
-  label: string;
-  url: string;
-};
-
 export type ChatStreamEvent =
   | {
       type: "message_start";
@@ -10,7 +5,6 @@ export type ChatStreamEvent =
       message_id: string;
     }
   | { type: "text_delta"; delta: string }
-  | { type: "further_reading"; links: unknown }
   | { type: "message_end" }
   | { type: "error"; detail: string };
 
@@ -20,7 +14,6 @@ export type TranscriptMessage = {
   content: string;
   status: "pending" | "complete" | "failed";
   retryContent?: string;
-  furtherReading?: FurtherReadingLink[];
 };
 
 export type ConversationState = {
@@ -50,11 +43,6 @@ export type ConversationAction =
       conversationId: string;
     }
   | { type: "text_delta"; pendingId: string; delta: string }
-  | {
-      type: "further_reading";
-      pendingId: string;
-      links: FurtherReadingLink[];
-    }
   | {
       type: "turn_completed";
       pendingId: string;
@@ -115,7 +103,6 @@ export function conversationReducer(
                 ...message,
                 content: "",
                 status: "pending",
-                furtherReading: undefined,
               }
             : message,
         ),
@@ -133,15 +120,6 @@ export function conversationReducer(
         messages: state.messages.map((message) =>
           message.id === action.pendingId
             ? { ...message, content: message.content + action.delta }
-            : message,
-        ),
-      };
-    case "further_reading":
-      return {
-        ...state,
-        messages: state.messages.map((message) =>
-          message.id === action.pendingId
-            ? { ...message, furtherReading: action.links }
             : message,
         ),
       };
@@ -165,7 +143,6 @@ export function conversationReducer(
                 ...message,
                 content: action.error,
                 status: "failed",
-                furtherReading: undefined,
               }
             : message,
         ),
@@ -187,25 +164,6 @@ export function conversationReducer(
     case "reset":
       return { ...initialState, sessionRestored: state.sessionRestored };
   }
-}
-
-export function parseFurtherReading(
-  value: unknown,
-): FurtherReadingLink[] | undefined {
-  if (!Array.isArray(value)) return undefined;
-
-  const links = value.filter(
-    (link): link is FurtherReadingLink =>
-      typeof link === "object" &&
-      link !== null &&
-      "label" in link &&
-      typeof link.label === "string" &&
-      link.label.length > 0 &&
-      "url" in link &&
-      typeof link.url === "string" &&
-      /^https?:\/\//.test(link.url),
-  );
-  return links.length > 0 ? links : undefined;
 }
 
 export function parseStoredTranscript(
@@ -235,13 +193,12 @@ export function parseStoredTranscript(
       return null;
     }
     return (messages as TranscriptMessage[]).map(
-      ({ id, role, content, status, retryContent, furtherReading }) => ({
+      ({ id, role, content, status, retryContent }) => ({
         id,
         role,
         content,
         status,
         retryContent,
-        furtherReading: parseFurtherReading(furtherReading),
       }),
     );
   } catch {

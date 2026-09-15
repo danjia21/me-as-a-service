@@ -67,8 +67,17 @@ async function fetchPageViews(): Promise<number> {
   }
 
   const payload = (await response.json()) as CloudflareAnalyticsResponse;
-  const count = payload.data?.viewer?.accounts?.[0]?.pageViews?.[0]?.count;
-  if (payload.errors?.length || typeof count !== "number" || count < 0) {
+  const pageViews = payload.data?.viewer?.accounts?.[0]?.pageViews;
+  if (payload.errors?.length || !Array.isArray(pageViews)) {
+    throw new Error("Cloudflare Analytics returned an invalid response");
+  }
+
+  if (pageViews.length === 0) {
+    return 0;
+  }
+
+  const count = pageViews[0]?.count;
+  if (typeof count !== "number" || count < 0) {
     throw new Error("Cloudflare Analytics returned an invalid response");
   }
   return count;

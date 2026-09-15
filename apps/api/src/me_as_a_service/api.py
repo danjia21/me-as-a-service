@@ -1,3 +1,5 @@
+"""Expose the HTTP API and apply operational request controls."""
+
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from datetime import UTC, datetime
@@ -11,17 +13,10 @@ from fastapi import FastAPI, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from prometheus_client import CONTENT_TYPE_LATEST
 
-from me_as_a_service.chat.types import (
-    MAX_MESSAGE_LENGTH,
-    ChatEvent,
-    ChatRequest,
-    ErrorEvent,
-)
-from me_as_a_service.chat.workflow import UsageLimitExceeded
-from me_as_a_service.instance import load_selected_instance
-from me_as_a_service.knowledge import ScopedEvidenceRetriever
-from me_as_a_service.runtime import build_chat_workflow
-from me_as_a_service.traffic import (
+from .chat.types import MAX_MESSAGE_LENGTH, ChatEvent, ChatRequest
+from .chat_workflow import build_chat_workflow
+from .instance import load_instance_from_environment
+from .operations.traffic import (
     ConcurrencyGate,
     PrivacyKeyHasher,
     QueueSaturated,
@@ -31,14 +26,13 @@ from me_as_a_service.traffic import (
     TrafficMonitor,
     resolve_client_address,
 )
+from .operations.usage_limits import UsageLimitExceeded
 
 NDJSON_MEDIA_TYPE = "application/x-ndjson"
 __all__ = [
     "MAX_MESSAGE_LENGTH",
     "app",
     "chat_workflow",
-    "conversation_store",
-    "usage_ledger",
 ]
 
 load_dotenv()
@@ -54,13 +48,8 @@ def _secret_from_environment(name: str) -> str | None:
     return getenv(name) or None
 
 
-instance = load_selected_instance()
-chat_workflow = build_chat_workflow(
-    retriever=ScopedEvidenceRetriever.from_directory(instance.knowledge_directory),
-    instance=instance,
-)
-conversation_store = chat_workflow.store
-usage_ledger = chat_workflow.usage_ledger
+instance = load_instance_from_environment()
+chat_workflow = build_chat_workflow(instance)
 privacy_key_hasher = PrivacyKeyHasher()
 traffic_monitor = TrafficMonitor()
 ip_rate_limiter = SlidingWindowRateLimiter(
@@ -177,9 +166,9 @@ async def chat(
     try:
         conversation_id = payload.conversation_id
         if conversation_id is None:
-            conversation_id = await conversation_store.create()
+            conversation_id = await chat_workflow.create_conversation()
             traffic_monitor.conversation_created()
-        elif not await conversation_store.exists(conversation_id):
+        elif not await chat_workflow.conversation_exists(conversation_id):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Conversation was not found. Start a new conversation.",
@@ -243,7 +232,7 @@ async def metrics(
     persistence_ready = True
     try:
         await chat_workflow.healthcheck()
-        daily_tokens = await usage_ledger.tokens_since(today)
+        daily_tokens = await chat_workflow.tokens_since(today)
     except Exception:
         persistence_ready = False
         daily_tokens = 0
@@ -278,10 +267,15 @@ async def _ndjson_events(
     async with lease:
         try:
             async for event in events:
-                yield f"{event.model_dump_json()}\n"
+                yield f"{event.model_dump_json(exclude_none=True)}\n"
         except UsageLimitExceeded as error:
             traffic_monitor.observe_chat_outcome("usage_limited")
-            yield ErrorEvent(detail=str(error)).model_dump_json() + "\n"
+            yield (
+                ChatEvent(type="error", detail=str(error)).model_dump_json(
+                    exclude_none=True
+                )
+                + "\n"
+            )
         except Exception:
             traffic_monitor.observe_chat_outcome("failed")
             yield '{"type":"error","detail":"The response stream failed."}\n'

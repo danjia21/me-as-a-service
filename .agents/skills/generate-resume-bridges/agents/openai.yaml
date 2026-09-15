@@ -1,4 +1,0 @@
-interface:
-  display_name: "Generate resume bridges"
-  short_description: "Create résumé bridges and contact passages"
-  default_prompt: "Use $generate-resume-bridges to create compact retrieval passages from the selected instance résumé, including an approved public professional contact passage when needed."

@@ -17,7 +17,7 @@ COPY apps/api/package.json apps/api/package.json
 RUN pnpm install --frozen-lockfile --filter @me-as-a-service/web...
 
 COPY apps/web apps/web
-COPY examples/fictional-profile examples/fictional-profile
+COPY instance/example instance/example
 RUN pnpm --filter @me-as-a-service/web build
 
 FROM node:24.11.1-alpine3.22 AS runtime
@@ -31,7 +31,7 @@ WORKDIR /app
 
 COPY --from=builder --chown=node:node /build/apps/web/.next/standalone ./
 COPY --from=builder --chown=node:node /build/apps/web/.next/static ./apps/web/.next/static
-COPY --from=builder --chown=node:node /build/examples/fictional-profile /app/examples/fictional-profile
+COPY --from=builder --chown=node:node /build/instance/example /app/instance/example
 
 USER node
 

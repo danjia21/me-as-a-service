@@ -6,7 +6,6 @@
     "dev": "pnpm --parallel --recursive --if-present run dev",
     "dev:api": "pnpm --filter @me-as-a-service/api dev",
     "dev:web": "pnpm --filter @me-as-a-service/web dev",
-    "eval:routing": "pnpm --filter @me-as-a-service/api eval:routing",
     "build": "pnpm --recursive --if-present run build",
     "check": "pnpm lint && pnpm test",
     "lint": "pnpm --recursive --if-present run lint",
@@ -15,12 +14,12 @@
     "test:api": "pnpm --filter @me-as-a-service/api test",
     "check:private": "pnpm --filter @me-as-a-service/api test:private",
     "prepare": "husky",
-    "format": "prettier --write . && pnpm --filter @me-as-a-service/api exec uv run ruff format .",
-    "format:check": "prettier --check . && pnpm --filter @me-as-a-service/api exec uv run ruff format --check ."
+    "format": "prettier --write . && pnpm --filter @me-as-a-service/api exec uv run ruff format . && pnpm --filter @me-as-a-service/knowledge-cli format",
+    "format:check": "prettier --check . && pnpm --filter @me-as-a-service/api exec uv run ruff format --check . && pnpm --filter @me-as-a-service/knowledge-cli format:check"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,yml,yaml,md,css}": "prettier --write",
-    "*.py": "uv --directory apps/api run ruff format"
+    "*.py": "uv --directory tools/knowledge-cli run ruff format"
   },
   "engines": {
     "node": ">=24 <25"

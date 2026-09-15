@@ -1,4 +1,0 @@
-interface:
-  display_name: "Bootstrap personal knowledge"
-  short_description: "Turn rough career evidence into approved accounts"
-  default_prompt: "Use $bootstrap-personal-knowledge to quickly capture missing evidence from my résumé or notes, coach only material gaps, and grow the selected instance's approved personal knowledge corpus."

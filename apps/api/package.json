@@ -3,8 +3,10 @@
   "private": true,
   "scripts": {
     "dev": "uv run uvicorn me_as_a_service.api:app --app-dir src --reload",
-    "eval:routing": "PYTHONPATH=src uv run python -m me_as_a_service.evaluation.routing",
-    "lint": "uv run ruff check . && uv run mypy src tests",
+    "eval:classification": "uv run pytest -q -s evaluations/query_classification/test_query_classification.py",
+    "eval:evidence-required-response": "uv run pytest -q -s evaluations/evidence_required_response/test_evidence_required_response.py",
+    "eval:retrieval-free-response": "uv run pytest -q -s evaluations/retrieval_free_response/test_retrieval_free_response.py",
+    "lint": "uv run ruff check . && uv run mypy src tests evaluations",
     "test": "uv run pytest",
     "test:private": "PYTHONPATH=src uv run pytest ../../private/tests"
   }

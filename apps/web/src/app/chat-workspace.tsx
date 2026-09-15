@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChatComposer } from "./chat/chat-composer";
-import { GitHubIcon, MarkIcon, PromptArrowIcon } from "./chat/chat-icons";
+import { GitHubIcon, MarkIcon } from "./chat/chat-icons";
 import { ChatTranscript } from "./chat/chat-transcript";
 import { type TranscriptMessage } from "./chat/conversation-state";
 import { useConversation } from "./chat/use-conversation";
@@ -132,10 +132,12 @@ export function ChatWorkspace({ instance }: ChatWorkspaceProps) {
               <span className={styles.heroMark}>
                 <MarkIcon />
               </span>
+              <p className={styles.representationLabel}>
+                {instance.representation_label}
+              </p>
               <h1>Hi, I&apos;m {instance.display_name}.</h1>
-              <p>
-                Ask me about the systems I&apos;ve built, my research, or how I
-                approach engineering decisions.
+              <p className={styles.welcomeIntroduction}>
+                {instance.welcome_message}
               </p>
               <div
                 className={styles.promptGrid}
@@ -150,7 +152,6 @@ export function ChatWorkspace({ instance }: ChatWorkspaceProps) {
                     type="button"
                   >
                     <span>{question}</span>
-                    <PromptArrowIcon className={styles.promptArrow} />
                   </button>
                 ))}
               </div>
@@ -181,10 +182,13 @@ export function ChatWorkspace({ instance }: ChatWorkspaceProps) {
       </section>
 
       <footer className={styles.footer}>
-        <p>
-          This is an AI representation of a person, not the real person. AI can
-          make mistakes. Verify important details independently.
-        </p>
+        <div className={styles.identityNotice}>
+          <span>{instance.representation_label}</span>
+          <p>
+            {instance.disclosure} AI can make mistakes. Verify important details
+            independently.
+          </p>
+        </div>
         <div className={styles.footerLinks}>
           {instance.links.repository ? (
             <a
