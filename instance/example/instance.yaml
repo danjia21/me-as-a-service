@@ -1,0 +1,34 @@
+# This file configures one Me-as-a-Service profile and is generated during
+# knowledge-base initialization. Modify these values to customize the person's
+# presentation details, suggested conversation starters, and public links.
+
+# The person's name shown in the interface and used to describe the profile.
+display_name: Rowan Vale
+
+# A short label for the AI representation, shown in the welcome view and footer.
+representation_label: Evidence-backed interview agent
+
+# The persistent notice that tells visitors they are speaking with an AI representation.
+disclosure: This is an AI representation of Rowan Vale, not Rowan themself.
+
+# The opening message visitors see before beginning a conversation.
+welcome_message: Ask me about the systems I've built, my research, or how I approach engineering decisions.
+
+# Knowledge files used by the API when answering evidence-based questions.
+knowledge_base:
+  # Path to the retrieval index, relative to this instance directory.
+  index: index/records.json
+
+# Conversation starters shown in the welcome view; add questions relevant to this person.
+suggested_questions:
+  - Tell me about the hardest system you built at Northstar Mobility.
+  - How did Lantern change the way your team investigated incidents?
+  - Explain Harbor like I'm new to robot localization.
+  - Why did you choose an append-only event model for Lantern?
+
+# Optional, deliberately public destinations the assistant or interface may reference.
+links:
+  # Public page where a visitor can learn more about or contact the represented person.
+  public_profile: https://example.com/rowan-vale
+  # Public source repository or project page associated with this instance.
+  repository: https://github.com/example/me-as-a-service

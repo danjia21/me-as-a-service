@@ -2,6 +2,9 @@
 .github
 .agents
 private
+instance/*
+!instance/example
+!instance/example/**
 .data
 .public-release
 .public-release-state.json

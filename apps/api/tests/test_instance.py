@@ -1,140 +1,136 @@
-import os
-import subprocess
-import sys
+import json
 from pathlib import Path
 
 import pytest
-import yaml
-from pydantic import ValidationError
 
-from me_as_a_service.instance import load_instance, load_selected_instance
-
-REPOSITORY_ROOT = Path(__file__).parents[3]
-FICTIONAL_INSTANCE = REPOSITORY_ROOT / "examples/fictional-profile"
-
-
-def test_loads_the_selected_instance_from_one_environment_pointer(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("MAAS_INSTANCE_DIR", str(FICTIONAL_INSTANCE))
-
-    instance = load_selected_instance()
-
-    assert instance.config.display_name == "Rowan Vale"
-    assert instance.knowledge_directory == FICTIONAL_INSTANCE / "knowledge"
-    assert (
-        instance.evaluation_questions
-        == FICTIONAL_INSTANCE / "evaluations/questions.yaml"
-    )
+from me_as_a_service.instance import (
+    Instance,
+    load_instance,
+    load_instance_from_environment,
+)
 
 
-def test_temporary_instance_requires_no_source_changes(tmp_path: Path) -> None:
-    knowledge = tmp_path / "knowledge"
-    knowledge.mkdir()
-    (knowledge / "profile.md").write_text(
-        "---\nid: temporary\ntitle: Temporary profile\n---\n\n# Work\n\nEvidence.\n",
+def evaluation_questions() -> list[dict[str, str]]:
+    return [
+        {"id": f"question_{index}", "question": f"Question {index}?"}
+        for index in range(10)
+    ]
+
+
+def test_instance_exposes_its_owned_paths(tmp_path: Path) -> None:
+    directory = tmp_path / "profile"
+    (directory / "index").mkdir(parents=True)
+    (directory / "evaluations").mkdir()
+    (directory / "instance.yaml").write_text(
+        "display_name: Test Profile\n",
         encoding="utf-8",
     )
-    _write_manifest(tmp_path, display_name="Temporary Person")
-
-    instance = load_instance(tmp_path)
-
-    assert instance.config.display_name == "Temporary Person"
-    assert instance.knowledge_directory == knowledge
-    assert "You are Temporary Person." in instance.system_policy
-    assert instance.config.disclosure not in instance.system_policy
-    assert "the interface handles disclosure" in instance.system_policy
-
-
-def test_api_starts_with_a_temporary_instance(tmp_path: Path) -> None:
-    knowledge = tmp_path / "knowledge"
-    knowledge.mkdir()
-    (knowledge / "profile.md").write_text(
-        "---\nid: temporary\ntitle: Temporary profile\n---\n\n# Work\n\nEvidence.\n",
+    (directory / "index" / "records.json").write_text(
+        json.dumps([{"id": "one", "subject": "One", "body": "Body"}]),
         encoding="utf-8",
     )
-    _write_manifest(tmp_path, display_name="Temporary Person")
-    environment = {
-        "PATH": os.environ.get("PATH", ""),
-        "PYTHONPATH": str(REPOSITORY_ROOT / "apps/api/src"),
-        "OPENAI_API_KEY": "test-key",
-        "LANGSMITH_TRACING": "false",
-        "MAAS_CONVERSATION_STORE": "memory",
-        "MAAS_INSTANCE_DIR": str(tmp_path),
+    (directory / "evaluations" / "evidence_required.json").write_text(
+        json.dumps(evaluation_questions()),
+        encoding="utf-8",
+    )
+
+    instance = load_instance(tmp_path / "profile" / ".." / "profile")
+
+    assert instance.directory == (tmp_path / "profile").resolve()
+    assert instance.manifest_path == instance.directory / "instance.yaml"
+    assert instance.index_path == instance.directory / "index" / "records.json"
+    assert instance.evaluation_questions_path == (
+        instance.directory / "evaluations" / "evidence_required.json"
+    )
+    assert instance.manifest == {"display_name": "Test Profile"}
+    assert instance.public_profile is None
+    assert instance.records == ({"id": "one", "subject": "One", "body": "Body"},)
+    assert instance.evaluation_questions() == {
+        f"question_{index}": f"Question {index}?" for index in range(10)
     }
 
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            (
-                "from me_as_a_service.api import instance; "
-                "print(instance.config.display_name)"
-            ),
-        ],
-        check=True,
-        capture_output=True,
-        env=environment,
-        text=True,
-    )
 
-    assert result.stdout.strip() == "Temporary Person"
+def test_instance_exposes_configured_public_profile(tmp_path: Path) -> None:
+    directory = tmp_path / "profile"
+    (directory / "index").mkdir(parents=True)
+    (directory / "instance.yaml").write_text(
+        "display_name: Test Profile\n"
+        "links:\n"
+        "  public_profile: https://www.linkedin.com/in/test-profile/\n",
+        encoding="utf-8",
+    )
+    (directory / "index" / "records.json").write_text("[]", encoding="utf-8")
+
+    assert Instance(directory).public_profile == (
+        "https://www.linkedin.com/in/test-profile/"
+    )
 
 
 @pytest.mark.parametrize(
-    "unsafe_path",
-    ("../private", "knowledge/../../private", "/absolute/path"),
+    ("questions", "message"),
+    [
+        (
+            [*evaluation_questions()[:-1], evaluation_questions()[0]],
+            "evaluation question IDs must be unique",
+        ),
+        (
+            [
+                {**question, "unexpected": "value"} if index == 0 else question
+                for index, question in enumerate(evaluation_questions())
+            ],
+            "must contain exactly",
+        ),
+    ],
 )
-def test_manifest_paths_cannot_escape_the_instance(
+def test_instance_rejects_invalid_evaluation_questions(
     tmp_path: Path,
-    unsafe_path: str,
+    questions: list[dict[str, str]],
+    message: str,
 ) -> None:
-    (tmp_path / "knowledge").mkdir()
-    _write_manifest(tmp_path, knowledge_path=unsafe_path)
-
-    with pytest.raises(ValidationError, match="remain inside the instance"):
-        load_instance(tmp_path)
-
-
-def test_manifest_rejects_unknown_fields(tmp_path: Path) -> None:
-    (tmp_path / "knowledge").mkdir()
-    manifest = _manifest()
-    manifest["unexpected"] = True
-    (tmp_path / "instance.yaml").write_text(
-        yaml.safe_dump(manifest, sort_keys=False),
+    directory = tmp_path / "profile"
+    (directory / "index").mkdir(parents=True)
+    (directory / "evaluations").mkdir()
+    (directory / "instance.yaml").write_text(
+        "display_name: Test Profile\n",
+        encoding="utf-8",
+    )
+    (directory / "index" / "records.json").write_text("[]", encoding="utf-8")
+    (directory / "evaluations" / "evidence_required.json").write_text(
+        json.dumps(questions),
         encoding="utf-8",
     )
 
-    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-        load_instance(tmp_path)
+    with pytest.raises(ValueError, match=message):
+        Instance(directory).evaluation_questions()
 
 
-def _write_manifest(
-    root: Path,
-    *,
-    display_name: str = "Example Person",
-    knowledge_path: str = "knowledge",
+def test_load_instance_from_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    manifest = _manifest()
-    manifest["display_name"] = display_name
-    manifest["knowledge"] = {"path": knowledge_path}
-    (root / "instance.yaml").write_text(
-        yaml.safe_dump(manifest, sort_keys=False),
-        encoding="utf-8",
-    )
+    directory = tmp_path / "profile"
+    (directory / "index").mkdir(parents=True)
+    (directory / "instance.yaml").write_text("name: Profile\n", encoding="utf-8")
+    (directory / "index" / "records.json").write_text("[]", encoding="utf-8")
+    monkeypatch.setenv("MAAS_INSTANCE_DIR", str(directory))
+
+    assert load_instance_from_environment().directory == directory
 
 
-def _manifest() -> dict[str, object]:
-    return {
-        "schema_version": 1,
-        "id": "temporary",
-        "display_name": "Example Person",
-        "representation_label": "Interview agent",
-        "disclosure": "This is an AI representation.",
-        "knowledge": {"path": "knowledge"},
-        "suggested_questions": ["What did this person build?"],
-        "links": {},
-        "routing": {
-            "personal_terms": ["person", "work"],
-        },
-    }
+@pytest.mark.parametrize(
+    ("filename", "content", "message"),
+    [
+        ("instance.yaml", "- not-an-object\n", "manifest must be an object"),
+        ("index/records.json", "{}", "records must be a JSON array"),
+    ],
+)
+def test_instance_rejects_invalid_loaded_data(
+    tmp_path: Path, filename: str, content: str, message: str
+) -> None:
+    directory = tmp_path / "profile"
+    (directory / "index").mkdir(parents=True)
+    (directory / "instance.yaml").write_text("name: Profile\n", encoding="utf-8")
+    (directory / "index" / "records.json").write_text("[]", encoding="utf-8")
+    (directory / filename).write_text(content, encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        Instance(directory)

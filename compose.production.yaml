@@ -53,7 +53,7 @@ services:
     secrets:
       - metrics_bearer_token
     volumes:
-      - ${MAAS_INSTANCE_DIR_HOST:-./examples/fictional-profile}:/app/instance:ro
+      - ${MAAS_INSTANCE_DIR_HOST:-./instance/example}:/app/instance:ro
     networks:
       - backend
       - egress
@@ -92,7 +92,7 @@ services:
       - backend
       - edge
     volumes:
-      - ${MAAS_INSTANCE_DIR_HOST:-./examples/fictional-profile}:/app/instance:ro
+      - ${MAAS_INSTANCE_DIR_HOST:-./instance/example}:/app/instance:ro
     depends_on:
       api:
         condition: service_healthy

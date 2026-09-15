@@ -1,4 +1,0 @@
-interface:
-  display_name: "Bootstrap public knowledge"
-  short_description: "Build public knowledge with source provenance"
-  default_prompt: "Use $bootstrap-public-knowledge to exhaust the selected instance's research queue, record authoritative sources with provenance, and keep external evidence separate from autobiographical claims."

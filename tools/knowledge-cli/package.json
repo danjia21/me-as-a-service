@@ -1,0 +1,10 @@
+{
+  "name": "@me-as-a-service/knowledge-cli",
+  "private": true,
+  "scripts": {
+    "lint": "uv run ruff check . && uv run mypy src tests",
+    "test": "uv run pytest",
+    "format": "uv run ruff format .",
+    "format:check": "uv run ruff format --check ."
+  }
+}

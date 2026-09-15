@@ -86,13 +86,9 @@ CREATE TABLE IF NOT EXISTS conversation_messages (
     id uuid NOT NULL,
     role text NOT NULL CHECK (role IN ('user', 'assistant')),
     content text NOT NULL,
-    generation_content text,
     PRIMARY KEY (conversation_id, ordinal),
     UNIQUE (id)
 );
-
-ALTER TABLE conversation_messages
-    ADD COLUMN IF NOT EXISTS generation_content text;
 
 CREATE INDEX IF NOT EXISTS conversations_expires_at_idx
     ON conversations (expires_at);
@@ -152,8 +148,7 @@ class PostgresConversationStore:
         async with await psycopg.AsyncConnection.connect(self._database_url) as conn:
             message_cursor = await conn.execute(
                 """
-                SELECT message.id, message.role, message.content,
-                    message.generation_content
+                SELECT message.id, message.role, message.content
                 FROM conversation_messages AS message
                 JOIN conversations AS conversation
                     ON conversation.id = message.conversation_id
@@ -170,7 +165,6 @@ class PostgresConversationStore:
                 id=row[0],
                 role=row[1],
                 content=row[2],
-                generation_content=row[3],
             )
             for row in rows
         )
@@ -200,9 +194,8 @@ class PostgresConversationStore:
                 await insert_cursor.executemany(
                     """
                     INSERT INTO conversation_messages
-                        (conversation_id, ordinal, id, role, content,
-                            generation_content)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                        (conversation_id, ordinal, id, role, content)
+                    VALUES (%s, %s, %s, %s, %s)
                     """,
                     [
                         (
@@ -211,7 +204,6 @@ class PostgresConversationStore:
                             user_message.id,
                             user_message.role,
                             user_message.content,
-                            user_message.generation_content,
                         ),
                         (
                             conversation_id,
@@ -219,7 +211,6 @@ class PostgresConversationStore:
                             assistant_message.id,
                             assistant_message.role,
                             assistant_message.content,
-                            assistant_message.generation_content,
                         ),
                     ],
                 )

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Initialize knowledge base"
+  short_description: "Create a usable retrieval index from a technical résumé"
+  default_prompt: "Use $initialize-knowledge-base to turn my technical résumé into a usable retrieval index, then enrich it with public context and focused interview questions."

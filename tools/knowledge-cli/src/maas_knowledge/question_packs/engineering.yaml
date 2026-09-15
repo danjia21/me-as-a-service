@@ -1,0 +1,56 @@
+schema_version: 1
+id: engineering
+role_vocabulary:
+  - software engineer
+  - machine-learning engineer
+  - research scientist
+  - technical lead
+  - architect
+artifact_vocabulary:
+  - service
+  - platform
+  - model
+  - dataset
+  - paper
+  - repository
+  - benchmark
+importance_heuristics:
+  - Prefer recent roles, named projects, quantified outcomes, publications, and repeated skills.
+  - Cover every role broadly before deepening one project.
+  - Treat ambiguous ownership and contradictory chronology as high-risk gaps.
+question_archetypes:
+  - key: ownership
+    question: What did you personally own, and what did the team own?
+    expected_evidence: explicit contribution boundaries
+    gap_tags: [ownership, collaboration]
+  - key: outcomes
+    question: What changed because of the work, and how do you know?
+    expected_evidence: measured or precisely observed outcomes
+    gap_tags: [outcomes]
+  - key: decisions
+    question: What was the hardest decision or trade-off?
+    expected_evidence: alternatives, constraints, and rationale
+    gap_tags: [decisions, trade-offs]
+  - key: course-correction
+    question: What failed or changed course, and what did you learn?
+    expected_evidence: a supported problem, response, and reflection
+    gap_tags: [failure, lessons]
+  - key: leadership
+    question: How did you align collaborators or lead technical direction?
+    expected_evidence: concrete coordination or technical-leadership behavior
+    gap_tags: [collaboration, leadership]
+  - key: progression
+    question: How did your responsibilities or technical focus develop across roles?
+    expected_evidence: supported chronology and cross-role comparison
+    gap_tags: [chronology, progression]
+privacy_and_overclaim_risks:
+  - Do not infer sole ownership from lead or principal titles.
+  - Do not turn team outcomes into individual causality.
+  - Do not request confidential implementation, personnel, customer, or security details.
+  - Do not strengthen qualitative improvement into a metric.
+sample_selection_guidance:
+  - career chronology and breadth
+  - technical depth in one substantial project
+  - ownership, collaboration, or leadership synthesis
+  - comparison across at least two roles or projects
+  - publications, repositories, talks, or other public references

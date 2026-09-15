@@ -65,6 +65,8 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  tools/knowledge-cli: {}
+
 packages:
   "@alloc/quick-lru@5.2.0":
     resolution:

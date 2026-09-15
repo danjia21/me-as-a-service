@@ -76,7 +76,6 @@
 
 .markdown p {
   margin: 0 0 12px;
-  white-space: pre-wrap;
 }
 
 .markdown h2,
@@ -90,11 +89,44 @@
 .markdown ul,
 .markdown ol {
   margin: 8px 0 12px;
-  padding-left: 22px;
+  padding-left: 24px;
+}
+
+.markdown ul {
+  list-style: disc outside;
+}
+
+.markdown ol {
+  list-style: decimal outside;
+}
+
+.markdown li {
+  padding-left: 2px;
+}
+
+.markdown li::marker {
+  color: var(--text-muted);
+  font-weight: 550;
 }
 
 .markdown li + li {
-  margin-top: 5px;
+  margin-top: 6px;
+}
+
+.markdown li > p {
+  margin-bottom: 6px;
+}
+
+.markdown li > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown ul ul {
+  list-style-type: circle;
+}
+
+.markdown ol ol {
+  list-style-type: lower-alpha;
 }
 
 .markdown code {
@@ -163,92 +195,6 @@
   stroke-width: 1.6;
 }
 
-/* A left rule marks a turn's standing: teal for evidenced, amber for failed. */
-.furtherReading {
-  margin: 18px 0 0;
-  padding-left: 13px;
-  border-left: 2px solid rgb(20 148 119 / 42%);
-  animation: surface 220ms ease-out both;
-}
-
-.furtherReadingLabel {
-  margin: 0 0 5px;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.furtherReading ul {
-  display: flex;
-  margin: 0;
-  padding: 0;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  list-style: none;
-}
-
-.furtherReading a {
-  display: inline-flex;
-  align-items: baseline;
-  padding: 3px 0;
-  flex-wrap: wrap;
-  gap: 2px 8px;
-  color: var(--text-soft);
-  text-decoration: none;
-  font-size: 13px;
-  line-height: 1.45;
-  transition: color 150ms ease;
-}
-
-.linkLabel {
-  font-weight: 500;
-  text-decoration: underline;
-  text-decoration-color: rgb(20 148 119 / 34%);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  overflow-wrap: anywhere;
-}
-
-.linkHost {
-  color: var(--text-muted);
-  font-size: 11px;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
-
-.linkIcon {
-  width: 13px;
-  height: 13px;
-  align-self: center;
-  flex: 0 0 13px;
-  color: var(--text-muted);
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.6;
-}
-
-.furtherReading a:hover {
-  color: var(--brand-dark);
-}
-
-.furtherReading a:hover .linkLabel {
-  text-decoration-color: currentColor;
-}
-
-.furtherReading a:hover .linkHost,
-.furtherReading a:hover .linkIcon {
-  color: var(--brand);
-}
-
-.furtherReading a:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 3px;
-  border-radius: 4px;
-}
-
 .pendingText {
   margin: 0;
   color: var(--text-muted) !important;
@@ -309,18 +255,6 @@
   }
 }
 
-@keyframes surface {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 @media (max-width: 720px) {
   .transcript {
     min-height: 180px;
@@ -343,13 +277,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .retry,
-  .furtherReading a {
+  .retry {
     transition: none;
   }
 
-  .pendingText,
-  .furtherReading {
+  .pendingText {
     animation: none;
   }
 }

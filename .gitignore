@@ -33,6 +33,7 @@ htmlcov/
 dist/
 build/
 
+
 # Terraform/OpenTofu
 **/.terraform/
 *.tfstate

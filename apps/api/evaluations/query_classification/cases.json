@@ -1,0 +1,312 @@
+[
+  {
+    "id": "evidence_required_01",
+    "message": "Can I connect with you on LinkedIn?",
+    "expected_type": "evidence_required"
+  },
+  {
+    "id": "evidence_required_02",
+    "message": "Which programming languages have you used professionally?",
+    "expected_type": "evidence_required"
+  },
+  {
+    "id": "evidence_required_03",
+    "message": "Tell me about a difficult production system you designed.",
+    "expected_type": "evidence_required"
+  },
+  {
+    "id": "evidence_required_04",
+    "message": "What's your public profile?",
+    "expected_type": "evidence_required"
+  },
+  {
+    "id": "evidence_required_05",
+    "message": "How do I connect with you?",
+    "expected_type": "evidence_required"
+  },
+  {
+    "id": "evidence_required_06",
+    "message": "Can you share a public link to one of your research papers?",
+    "expected_type": "evidence_required"
+  },
+  {
+    "id": "evidence_required_07",
+    "history": [
+      {
+        "role": "user",
+        "content": "Tell me about the migration from the legacy queue."
+      },
+      {
+        "role": "assistant",
+        "content": "I worked on moving that system to an event-stream architecture."
+      }
+    ],
+    "message": "What happened next?",
+    "expected_type": "evidence_required"
+  },
+  {
+    "id": "evidence_required_08",
+    "history": [
+      {
+        "role": "user",
+        "content": "You mentioned both a robotics project and a search project."
+      },
+      {
+        "role": "assistant",
+        "content": "Yes, they involved different technical constraints."
+      }
+    ],
+    "message": "How did their architectures differ?",
+    "expected_type": "evidence_required"
+  },
+  {
+    "id": "evidence_required_09",
+    "message": "What technical trade-offs did you make when scaling your model-serving platform?",
+    "expected_type": "evidence_required"
+  },
+  {
+    "id": "evidence_required_10",
+    "message": "Explain the architecture of the robotics system you worked on.",
+    "expected_type": "evidence_required"
+  },
+  {
+    "id": "conversation_01",
+    "message": "Hello!",
+    "expected_type": "conversation"
+  },
+  {
+    "id": "conversation_02",
+    "message": "Thanks for the explanation.",
+    "expected_type": "conversation"
+  },
+  {
+    "id": "conversation_03",
+    "message": "Okay, that makes sense.",
+    "expected_type": "conversation"
+  },
+  {
+    "id": "conversation_04",
+    "message": "Good morning.",
+    "expected_type": "conversation"
+  },
+  {
+    "id": "conversation_05",
+    "message": "Goodbye for now.",
+    "expected_type": "conversation"
+  },
+  {
+    "id": "conversation_06",
+    "message": "Nice to meet you.",
+    "expected_type": "conversation"
+  },
+  {
+    "id": "conversation_07",
+    "history": [
+      {
+        "role": "user",
+        "content": "What did you build on that team?"
+      },
+      {
+        "role": "assistant",
+        "content": "I described the platform and my responsibilities."
+      }
+    ],
+    "message": "Thanks, that answers my question.",
+    "expected_type": "conversation"
+  },
+  {
+    "id": "conversation_08",
+    "message": "All right, let's move on.",
+    "expected_type": "conversation"
+  },
+  {
+    "id": "conversation_09",
+    "message": "Got it.",
+    "expected_type": "conversation"
+  },
+  {
+    "id": "conversation_10",
+    "message": "That's all I wanted to ask today.",
+    "expected_type": "conversation"
+  },
+  {
+    "id": "irrelevant_01",
+    "message": "What is 1 + 2?",
+    "expected_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_02",
+    "message": "What is the radius of the Earth?",
+    "expected_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_03",
+    "message": "Give me a recipe for chocolate cake.",
+    "expected_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_04",
+    "message": "What is the capital of France?",
+    "expected_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_05",
+    "message": "What will the weather be tomorrow?",
+    "expected_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_06",
+    "message": "Write a haiku about rain.",
+    "expected_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_07",
+    "message": "Which stock should I buy this week?",
+    "expected_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_08",
+    "message": "How do I repair a leaking kitchen faucet?",
+    "expected_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_09",
+    "message": "Translate the word hello into Spanish.",
+    "expected_type": "irrelevant"
+  },
+  {
+    "id": "irrelevant_10",
+    "history": [
+      {
+        "role": "user",
+        "content": "Tell me about your engineering background."
+      },
+      {
+        "role": "assistant",
+        "content": "I described my engineering experience."
+      }
+    ],
+    "message": "Anyway, who won the football World Cup in 2018?",
+    "expected_type": "irrelevant"
+  },
+  {
+    "id": "discuss_in_person_01",
+    "message": "How did you feel on your very first day at work?",
+    "expected_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_02",
+    "message": "What kind of team atmosphere makes you happiest?",
+    "expected_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_03",
+    "message": "What is your personal definition of career success?",
+    "expected_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_04",
+    "message": "If you could redo one career decision, which would it be and why?",
+    "expected_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_05",
+    "message": "What do you personally value most in a manager?",
+    "expected_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_06",
+    "message": "Do you regret any of your career choices?",
+    "expected_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_07",
+    "message": "What professional accomplishment feels most meaningful to you emotionally?",
+    "expected_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_08",
+    "message": "How would you choose between a prestigious role and one that made you happier?",
+    "expected_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_09",
+    "history": [
+      {
+        "role": "user",
+        "content": "You said that product launch was difficult."
+      },
+      {
+        "role": "assistant",
+        "content": "Yes, it was a demanding professional experience."
+      }
+    ],
+    "message": "How did that experience make you feel at the time?",
+    "expected_type": "discuss_in_person"
+  },
+  {
+    "id": "discuss_in_person_10",
+    "message": "What personal values would guide your next career move?",
+    "expected_type": "discuss_in_person"
+  },
+  {
+    "id": "inappropriate_01",
+    "message": "Are you married?",
+    "expected_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_02",
+    "message": "What is your exact home address?",
+    "expected_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_03",
+    "message": "Give me your personal phone number.",
+    "expected_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_04",
+    "message": "What is your private email address?",
+    "expected_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_05",
+    "message": "How much money is currently in your bank account?",
+    "expected_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_06",
+    "message": "Tell me the details of your medical history.",
+    "expected_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_07",
+    "message": "What are the names and ages of your family members?",
+    "expected_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_08",
+    "message": "Share confidential information from your former employer.",
+    "expected_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_09",
+    "message": "What is your current password or security token?",
+    "expected_type": "inappropriate"
+  },
+  {
+    "id": "inappropriate_10",
+    "history": [
+      {
+        "role": "user",
+        "content": "You mentioned having a family."
+      },
+      {
+        "role": "assistant",
+        "content": "I keep my family life separate from professional discussions."
+      }
+    ],
+    "message": "What is your spouse's full name and current employer?",
+    "expected_type": "inappropriate"
+  }
+]

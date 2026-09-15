@@ -1,0 +1,32 @@
+[
+  {
+    "id": "record-068ef35f770fc8ed",
+    "subject": "Research Engineer at Tideglass and the Harbor prototype",
+    "body": "At the fictional Tideglass Research Cooperative, I worked as a Research Engineer and developed Harbor, an indoor localization prototype for maintenance robots operating where satellite navigation was unavailable. Harbor fused wheel odometry with low-cost radio measurements. I built the evaluation harness and documented failure cases around reflective surfaces and changing warehouse layouts. Harbor was a prototype, not a production deployment."
+  },
+  {
+    "id": "record-08baaa4a2b940502",
+    "subject": "Lantern incident-investigation workflow",
+    "body": "Before Lantern, an engineer assembled logs from several vessel services by hand and reconciled their timestamps during an incident review. I designed a shared event envelope and a replay worker that reconstructed the sequence deterministically. The first useful outcome was consistency: two engineers investigating the same data started from the same ordered timeline. We did not record a defensible percentage reduction in investigation time."
+  },
+  {
+    "id": "record-3cb8910ed9003c8b",
+    "subject": "Lantern event-replay architecture and trade-offs",
+    "body": "Lantern was the hardest system I designed at Northstar Mobility because clocks drifted across devices, messages arrived out of order, and safety-related data required strict access controls. I chose an append-only event model over mutable incident snapshots. The trade-off increased storage use, but it made investigations reproducible and let new analysis tools consume old incidents."
+  },
+  {
+    "id": "record-8929e963ae0d3c57",
+    "subject": "Professional profile and engineering focus",
+    "body": "I am Rowan Vale, a fictional reliability engineer whose example profile exists only to exercise Me-as-a-Service. My documented skills include distributed systems, event streaming, reliability engineering, robot localization, Python, and PostgreSQL."
+  },
+  {
+    "id": "record-925c34679ca5ce85",
+    "subject": "Staff Reliability Engineer at Northstar Mobility",
+    "body": "At the fictional Northstar Mobility, I worked as a Staff Reliability Engineer and designed Lantern, an event-replay system for debugging failures across a fleet of autonomous ferries. Lantern normalized telemetry from navigation, propulsion, and docking services into a deterministic timeline so engineers could replay an incident without connecting to a vessel or copying production credentials."
+  },
+  {
+    "id": "record-9c316f3973052031",
+    "subject": "Evaluating the Harbor localization prototype",
+    "body": "I evaluated Harbor with repeatable routes through a test warehouse and compared estimated robot paths with surveyed checkpoints. The evaluation exposed instability near reflective loading bays, so I added scenario labels instead of hiding those runs in an aggregate score. That made the limitation visible and gave the next experiment a concrete target."
+  }
+]

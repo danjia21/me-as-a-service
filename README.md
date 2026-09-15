@@ -14,15 +14,15 @@
 Me-as-a-Service turns a résumé and other documented work into an
 evidence-grounded conversational portfolio. Visitors can ask follow-up
 questions instead of searching through static pages. Behind the conversation,
-the application handles multi-turn context, RAG, evaluation, bounded web
-search, observability, and privacy controls.
+the application handles multi-turn context, RAG, evaluation, observability,
+and privacy controls.
 
 Profile content stays separate from the code, so the same open-source system
 can represent different people. The assistant speaks in the first person,
 remembers context within the current session, and grounds personal claims in a
 curated knowledge base. Its scope is intentionally limited: unrelated requests
-are redirected, while public contextual questions may use one web search only
-after curated retrieval is insufficient.
+are redirected, private requests receive a natural boundary, and unsupported
+personal or connected public questions are answered without guessing.
 
 > [!IMPORTANT]
 > The assistant represents a person; it is not the person. Never add private or
@@ -30,49 +30,61 @@ after curated retrieval is insufficient.
 
 ## How it works
 
-The system uses one configured LLM, through OpenAI or OpenRouter, for routing,
-evidence assessment, and response generation. The LLM carries the conversation,
-but the curated knowledge base remains the authority for personal claims.
+Each accepted turn follows one fixed path with exactly two hosted-model calls:
 
 ```mermaid
 flowchart LR
-    A["Message + conversation history"] --> B["LLM<br/>Route the turn and rewrite the query"]
-    B -->|"Conversation, privacy, or redirect"| F["LLM<br/>Generate the response"]
-    B -->|"Retrieval or public context"| C["Tantivy<br/>Scoped retrieval"]
-    K[("Curated knowledge base<br/>Résumé | Personal accounts | Public sources")] --> C
-    C --> D["LLM<br/>Select evidence and check sufficiency"]
-    D -->|"Sufficient, or personal evidence is incomplete"| F
-    D -. "Public context only, if evidence is insufficient" .-> E["One bounded web search"]
-    E --> F
-    F --> G["First-person answer, boundary, redirect, or abstention"]
+    A["Message + bounded session history"] --> B["1. Classify the turn<br/>and rewrite an evidence query"]
+    B -->|"evidence_required"| C["Search the in-memory<br/>Tantivy index"]
+    K[("records.json<br/>subject | body | optional URL")] --> C
+    C -->|"1–5 documents"| D["2. Stream an<br/>evidence-grounded answer"]
+    C -->|"No documents"| E["2. Stream an invitation<br/>to discuss in person"]
+    B -->|"conversation"| F["2. Stream a conversational reply"]
+    B -->|"irrelevant"| G["2. Stream an off-topic redirect"]
+    B -->|"discuss_in_person"| E
+    B -->|"inappropriate"| H["2. Stream a privacy boundary"]
 ```
 
-Routing comes first. A structured LLM call reads the latest message with recent
-session history, assigns a route, and rewrites contextual follow-ups into
-standalone search queries. A question such as "What happened next?" can
-therefore retrieve the right material. Greetings continue as conversation,
-sensitive requests receive a privacy boundary, and unrelated requests are
-redirected. Only personal and public-context questions reach retrieval.
+The first call sees the current message and bounded raw session history. It returns one
+of five conversation types and, only for `evidence_required`, a standalone retrieval
+query. This lets a follow-up such as "What happened next?" search correctly without
+making retrieval part of the model's generation request.
 
-Retrieval searches three independent parts of the knowledge base: the résumé,
-approved personal accounts, and curated public sources. Each has its own
-in-memory Tantivy index, so a large collection of public material cannot crowd
-out first-person evidence. The search returns up to one résumé passage and
-three passages from each of the other scopes.
+Evidence retrieval is local. The API builds one in-memory Tantivy index from the
+selected instance's `index/records.json` at startup and returns up to five complete
+records in relevance order. When records are found, their subject, body, and optional
+canonical URL are added to the current generation message. Internal IDs and search
+scores never leave the retrieval layer. If no record matches, the route uses the
+`discuss_in_person` policy instead of asking the model to improvise an answer.
 
-Search ranking is not treated as proof. Another structured LLM call selects the
-passages that directly support the question and decides whether they are enough
-to answer it. Only those selected passages enter the final prompt. If the
-personal evidence is incomplete, the response says so rather than guessing. A
-public-context question may use one bounded web search, but only after the
-curated knowledge base falls short. Web results cannot establish new claims
-about the represented person.
+The second call is an ordinary streamed chat completion using the response policy for
+the selected type. Evidence and conversational replies retain bounded history for
+continuity; privacy boundaries, off-topic redirects, and discuss-in-person replies use
+only the current message. The completed raw user message and generated answer are then
+stored as session history. They never become trusted profile knowledge.
 
-The final LLM call combines the route-specific prompt, recent conversation, and
-any selected evidence to produce a concise first-person response. Conversation
-history provides short-term context only. It never becomes trusted knowledge.
-Routing rules, prompts, and evaluation fixtures are versioned with the code,
-and optional LangSmith traces expose each step for inspection.
+The routing is deliberately simple: there is no agent loop, model-driven tool call,
+evidence-sufficiency pass, web search, or post-generation classifier. Keeping the
+request path fixed and short controls latency and model cost. Instead of adding more
+generation steps, the system relies on a carefully curated retrieval base to supply
+the strong evidence needed for high-quality answers. The curated index is the only
+runtime factual source for personal claims and connected public facts. Prompts are
+versioned with the code, and optional LangSmith traces expose the two model calls for
+inspection.
+
+## Features
+
+- [x] Hold evidence-grounded conversations with contextual follow-ups
+- [x] Stream responses through a simple, low-cost retrieval path
+- [x] Create reusable profiles from PDF or Markdown résumés
+- [x] Use models from OpenAI or OpenRouter
+- [x] Persist conversations and control traffic and model usage
+- [x] Trace model calls with LangSmith
+- [x] Monitor operations with Prometheus and Grafana
+- [ ] Let visitors rate responses
+- [ ] Automatically evaluate answer quality and evidence grounding
+- [ ] Explore advanced retrieval when the results justify the added cost
+- [ ] Support voice conversations
 
 ## Quick start
 
@@ -113,101 +125,150 @@ Copy [`.env.example`](.env.example) for local development or
 [`.env.production.example`](.env.production.example) for a production Compose
 deployment. Keep credentials and other secrets out of Git.
 
-| Area               | Variable                              | Default                        | Description                                                                                     |
-| ------------------ | ------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------- |
-| Application        | `MAAS_API_BASE_URL`                   | `http://127.0.0.1:8000`        | API URL used by the web app.                                                                    |
-| Application        | `MAAS_INSTANCE_DIR`                   | `examples/fictional-profile`   | Instance directory loaded by the API and web app.                                               |
-| Application        | `MAAS_CONVERSATION_STORE`             | `memory`                       | Conversation and usage store: `memory` or `postgres`. The local example selects `postgres`.     |
-| Application        | `DATABASE_URL`                        | Required for `postgres`        | PostgreSQL connection URL used by the API.                                                      |
-| Application        | `MAAS_CONVERSATION_RETENTION_HOURS`   | `24`                           | PostgreSQL conversation retention period in hours.                                              |
-| Application        | `MAAS_MAX_TURNS_PER_CONVERSATION`     | `20`                           | Maximum accepted turns in one conversation.                                                     |
-| Application        | `MAAS_DAILY_TOKEN_BUDGET`             | `100000`                       | Application-wide daily model-token budget.                                                      |
-| Application        | `MAAS_MAX_OUTPUT_TOKENS`              | `300`                          | Maximum model output tokens per generation.                                                     |
-| Model              | `MAAS_LLM_PROVIDER`                   | `openai`                       | Hosted model provider: `openai` or `openrouter`.                                                |
-| Model              | `MAAS_LLM_MODEL`                      | Provider-dependent             | Model ID; defaults to `gpt-5.6-luna` for OpenAI or `deepseek/deepseek-v4-flash` for OpenRouter. |
-| Model              | `OPENAI_API_KEY`                      | Required for OpenAI            | OpenAI API key.                                                                                 |
-| Model              | `OPENROUTER_API_KEY`                  | Required for OpenRouter        | OpenRouter API key.                                                                             |
-| Traffic            | `MAAS_IP_RATE_LIMIT_REQUESTS`         | `30`                           | Requests allowed per client IP in each rate-limit window.                                       |
-| Traffic            | `MAAS_SESSION_RATE_LIMIT_REQUESTS`    | `12`                           | Requests allowed per conversation in each rate-limit window.                                    |
-| Traffic            | `MAAS_RATE_LIMIT_WINDOW_SECONDS`      | `60`                           | Rate-limit window length in seconds.                                                            |
-| Traffic            | `MAAS_MAX_CONCURRENT_TURNS`           | `4`                            | Maximum turns processed concurrently by one API process.                                        |
-| Traffic            | `MAAS_MAX_QUEUED_TURNS`               | `8`                            | Maximum turns waiting for processing.                                                           |
-| Traffic            | `MAAS_QUEUE_TIMEOUT_SECONDS`          | `15`                           | Maximum time a queued turn waits before rejection.                                              |
-| Security           | `MAAS_PROXY_SHARED_SECRET`            | Empty                          | Shared secret used to authenticate the web-to-API proxy; required by the production deployment. |
-| Security           | `MAAS_METRICS_BEARER_TOKEN`           | Empty                          | Bearer token protecting the API metrics endpoint.                                               |
-| Security           | `MAAS_METRICS_BEARER_TOKEN_FILE`      | Empty                          | Path to a file containing the metrics bearer token; takes precedence over the inline token.     |
-| Web analytics      | `MAAS_DOMAIN`                         | Empty                          | Public hostname used for the Cloudflare visit counter and production routing.                   |
-| Web analytics      | `CLOUDFLARE_ACCOUNT_ID`               | Empty                          | Cloudflare account ID used by the server-side analytics query.                                  |
-| Web analytics      | `CLOUDFLARE_ANALYTICS_API_TOKEN`      | Empty                          | Cloudflare API token with analytics read access.                                                |
-| Web analytics      | `CLOUDFLARE_ANALYTICS_SITE_TOKEN`     | Empty                          | Cloudflare Web Analytics site token embedded in the web build.                                  |
-| Tracing            | `LANGSMITH_TRACING`                   | `false`                        | Enables optional LangSmith tracing when set to `true`.                                          |
-| Tracing            | `LANGSMITH_API_KEY`                   | Empty                          | LangSmith API key; required when tracing is enabled.                                            |
-| Tracing            | `LANGSMITH_PROJECT`                   | `me-as-a-service`              | LangSmith project receiving traces.                                                             |
-| Tracing            | `LANGSMITH_ENDPOINT`                  | LangSmith default              | Optional LangSmith API endpoint for a non-default region.                                       |
-| Tracing            | `LANGSMITH_WORKSPACE_ID`              | Empty                          | Optional LangSmith workspace ID.                                                                |
-| Runtime            | `MAAS_ENVIRONMENT`                    | Runtime-dependent              | Environment label attached to logs and traces. Production Compose sets `production`.            |
-| Runtime            | `MAAS_APPLICATION_REVISION`           | `unknown`                      | Application revision attached to trace metadata.                                                |
-| Runtime            | `MAAS_GRACEFUL_SHUTDOWN_SECONDS`      | `30`                           | API graceful-shutdown timeout in seconds.                                                       |
-| Runtime            | `PORT`                                | `8000`                         | API listening port when starting the Python runtime directly.                                   |
-| Local Compose      | `POSTGRES_PASSWORD`                   | `maas`                         | Password assigned to the local PostgreSQL container.                                            |
-| Production Compose | `COMPOSE_PROJECT_NAME`                | `maas` in the example          | Docker Compose project name.                                                                    |
-| Production Compose | `MAAS_DOCKER_NETWORK_PREFIX`          | `maas`                         | Prefix for named production Docker networks.                                                    |
-| Production Compose | `MAAS_ACME_EMAIL`                     | Required                       | Email address used for Let’s Encrypt certificate registration.                                  |
-| Production Compose | `MAAS_INSTANCE_DIR_HOST`              | `./examples/fictional-profile` | Host instance directory mounted into the application containers.                                |
-| Production Compose | `MAAS_TRAEFIK_TRUSTED_IPS`            | `127.0.0.1/32`                 | Comma-separated proxy CIDRs trusted by Traefik for forwarded headers.                           |
-| Production Compose | `POSTGRES_DB`                         | Required                       | Production PostgreSQL database name.                                                            |
-| Production Compose | `POSTGRES_USER`                       | Required                       | Production PostgreSQL user.                                                                     |
-| Production Compose | `POSTGRES_PASSWORD`                   | Required                       | Production PostgreSQL password.                                                                 |
-| Production secrets | `MAAS_METRICS_BEARER_TOKEN_FILE_HOST` | Required                       | Host file mounted as the API metrics-token secret.                                              |
-| Backups            | `RESTIC_REPOSITORY`                   | Required                       | Restic repository URL for encrypted backups.                                                    |
-| Backups            | `RESTIC_PASSWORD_FILE_HOST`           | Required                       | Host file containing the restic repository password.                                            |
-| Backups            | `AWS_ACCESS_KEY_ID`                   | Required                       | Access key for the S3-compatible backup store.                                                  |
-| Backups            | `AWS_SECRET_ACCESS_KEY`               | Required                       | Secret key for the S3-compatible backup store.                                                  |
-| Backups            | `AWS_DEFAULT_REGION`                  | Empty                          | Region for the S3-compatible backup store.                                                      |
-| Backups            | `MAAS_BACKUP_RETENTION_DAILY`         | `7`                            | Number of daily backup snapshots retained.                                                      |
-| Backups            | `MAAS_BACKUP_RETENTION_WEEKLY`        | `4`                            | Number of weekly backup snapshots retained.                                                     |
-| Observability      | `GRAFANA_ADMIN_USER`                  | `admin`                        | Initial Grafana administrator username.                                                         |
-| Observability      | `GRAFANA_ADMIN_PASSWORD`              | Required                       | Initial Grafana administrator password.                                                         |
-| Observability      | `MAAS_GRAFANA_BIND_ADDRESS`           | `127.0.0.1`                    | Host address used for the Grafana port binding.                                                 |
-| Observability      | `MAAS_ALERTMANAGER_CONFIG`            | Example config                 | Host path to the Alertmanager configuration file.                                               |
+| Area               | Variable                              | Default                 | Description                                                                                     |
+| ------------------ | ------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------- |
+| Application        | `MAAS_API_BASE_URL`                   | `http://127.0.0.1:8000` | API URL used by the web app.                                                                    |
+| Application        | `MAAS_INSTANCE_DIR`                   | `instance/example`      | Instance directory loaded by the API and web app.                                               |
+| Application        | `MAAS_CONVERSATION_STORE`             | `memory`                | Conversation and usage store: `memory` or `postgres`. The local example selects `postgres`.     |
+| Application        | `DATABASE_URL`                        | Required for `postgres` | PostgreSQL connection URL used by the API.                                                      |
+| Application        | `MAAS_CONVERSATION_RETENTION_HOURS`   | `24`                    | PostgreSQL conversation retention period in hours.                                              |
+| Application        | `MAAS_MAX_TURNS_PER_CONVERSATION`     | `20`                    | Maximum accepted turns in one conversation.                                                     |
+| Application        | `MAAS_DAILY_TOKEN_BUDGET`             | `100000`                | Application-wide daily model-token budget.                                                      |
+| Application        | `MAAS_MAX_OUTPUT_TOKENS`              | `300`                   | Maximum model output tokens per generation.                                                     |
+| Model              | `MAAS_LLM_PROVIDER`                   | `openai`                | Hosted model provider: `openai` or `openrouter`.                                                |
+| Model              | `MAAS_LLM_MODEL`                      | Provider-dependent      | Model ID; defaults to `gpt-5.6-luna` for OpenAI or `deepseek/deepseek-v4-flash` for OpenRouter. |
+| Model              | `OPENAI_API_KEY`                      | Required for OpenAI     | OpenAI API key.                                                                                 |
+| Model              | `OPENROUTER_API_KEY`                  | Required for OpenRouter | OpenRouter API key.                                                                             |
+| Traffic            | `MAAS_IP_RATE_LIMIT_REQUESTS`         | `30`                    | Requests allowed per client IP in each rate-limit window.                                       |
+| Traffic            | `MAAS_SESSION_RATE_LIMIT_REQUESTS`    | `12`                    | Requests allowed per conversation in each rate-limit window.                                    |
+| Traffic            | `MAAS_RATE_LIMIT_WINDOW_SECONDS`      | `60`                    | Rate-limit window length in seconds.                                                            |
+| Traffic            | `MAAS_MAX_CONCURRENT_TURNS`           | `4`                     | Maximum turns processed concurrently by one API process.                                        |
+| Traffic            | `MAAS_MAX_QUEUED_TURNS`               | `8`                     | Maximum turns waiting for processing.                                                           |
+| Traffic            | `MAAS_QUEUE_TIMEOUT_SECONDS`          | `15`                    | Maximum time a queued turn waits before rejection.                                              |
+| Security           | `MAAS_PROXY_SHARED_SECRET`            | Empty                   | Shared secret used to authenticate the web-to-API proxy; required by the production deployment. |
+| Security           | `MAAS_METRICS_BEARER_TOKEN`           | Empty                   | Bearer token protecting the API metrics endpoint.                                               |
+| Security           | `MAAS_METRICS_BEARER_TOKEN_FILE`      | Empty                   | Path to a file containing the metrics bearer token; takes precedence over the inline token.     |
+| Web analytics      | `MAAS_DOMAIN`                         | Empty                   | Public hostname used for the Cloudflare visit counter and production routing.                   |
+| Web analytics      | `CLOUDFLARE_ACCOUNT_ID`               | Empty                   | Cloudflare account ID used by the server-side analytics query.                                  |
+| Web analytics      | `CLOUDFLARE_ANALYTICS_API_TOKEN`      | Empty                   | Cloudflare API token with analytics read access.                                                |
+| Web analytics      | `CLOUDFLARE_ANALYTICS_SITE_TOKEN`     | Empty                   | Cloudflare Web Analytics site token embedded in the web build.                                  |
+| Tracing            | `LANGSMITH_TRACING`                   | `false`                 | Enables optional LangSmith tracing when set to `true`.                                          |
+| Tracing            | `LANGSMITH_API_KEY`                   | Empty                   | LangSmith API key; required when tracing is enabled.                                            |
+| Tracing            | `LANGSMITH_PROJECT`                   | `me-as-a-service`       | LangSmith project receiving traces.                                                             |
+| Tracing            | `LANGSMITH_ENDPOINT`                  | LangSmith default       | Optional LangSmith API endpoint for a non-default region.                                       |
+| Tracing            | `LANGSMITH_WORKSPACE_ID`              | Empty                   | Optional LangSmith workspace ID.                                                                |
+| Runtime            | `MAAS_ENVIRONMENT`                    | Runtime-dependent       | Environment label attached to logs and traces. Production Compose sets `production`.            |
+| Runtime            | `MAAS_APPLICATION_REVISION`           | `unknown`               | Application revision attached to trace metadata.                                                |
+| Runtime            | `MAAS_GRACEFUL_SHUTDOWN_SECONDS`      | `30`                    | API graceful-shutdown timeout in seconds.                                                       |
+| Runtime            | `PORT`                                | `8000`                  | API listening port when starting the Python runtime directly.                                   |
+| Local Compose      | `POSTGRES_PASSWORD`                   | `maas`                  | Password assigned to the local PostgreSQL container.                                            |
+| Production Compose | `COMPOSE_PROJECT_NAME`                | `maas` in the example   | Docker Compose project name.                                                                    |
+| Production Compose | `MAAS_DOCKER_NETWORK_PREFIX`          | `maas`                  | Prefix for named production Docker networks.                                                    |
+| Production Compose | `MAAS_ACME_EMAIL`                     | Required                | Email address used for Let’s Encrypt certificate registration.                                  |
+| Production Compose | `MAAS_INSTANCE_DIR_HOST`              | `./instance/example`    | Host instance directory mounted into the application containers.                                |
+| Production Compose | `MAAS_TRAEFIK_TRUSTED_IPS`            | `127.0.0.1/32`          | Comma-separated proxy CIDRs trusted by Traefik for forwarded headers.                           |
+| Production Compose | `POSTGRES_DB`                         | Required                | Production PostgreSQL database name.                                                            |
+| Production Compose | `POSTGRES_USER`                       | Required                | Production PostgreSQL user.                                                                     |
+| Production Compose | `POSTGRES_PASSWORD`                   | Required                | Production PostgreSQL password.                                                                 |
+| Production secrets | `MAAS_METRICS_BEARER_TOKEN_FILE_HOST` | Required                | Host file mounted as the API metrics-token secret.                                              |
+| Backups            | `RESTIC_REPOSITORY`                   | Required                | Restic repository URL for encrypted backups.                                                    |
+| Backups            | `RESTIC_PASSWORD_FILE_HOST`           | Required                | Host file containing the restic repository password.                                            |
+| Backups            | `AWS_ACCESS_KEY_ID`                   | Required                | Access key for the S3-compatible backup store.                                                  |
+| Backups            | `AWS_SECRET_ACCESS_KEY`               | Required                | Secret key for the S3-compatible backup store.                                                  |
+| Backups            | `AWS_DEFAULT_REGION`                  | Empty                   | Region for the S3-compatible backup store.                                                      |
+| Backups            | `MAAS_BACKUP_RETENTION_DAILY`         | `7`                     | Number of daily backup snapshots retained.                                                      |
+| Backups            | `MAAS_BACKUP_RETENTION_WEEKLY`        | `4`                     | Number of weekly backup snapshots retained.                                                     |
+| Observability      | `GRAFANA_ADMIN_USER`                  | `admin`                 | Initial Grafana administrator username.                                                         |
+| Observability      | `GRAFANA_ADMIN_PASSWORD`              | Required                | Initial Grafana administrator password.                                                         |
+| Observability      | `MAAS_GRAFANA_BIND_ADDRESS`           | `127.0.0.1`             | Host address used for the Grafana port binding.                                                 |
+| Observability      | `MAAS_ALERTMANAGER_CONFIG`            | Example config          | Host path to the Alertmanager configuration file.                                               |
 
 ## Create your own profile
 
-The repository includes several agent skills for building a custom knowledge
-base for the conversational AI. Start by putting a Markdown copy of your résumé
-at `instances/<your-name>/knowledge/resume.md`. Review it first and remove any
-private or sensitive information. Copy
-[`examples/fictional-profile/instance.yaml`](examples/fictional-profile/instance.yaml)
-into the same directory and replace the example profile details with your own.
+Profiles live under `instance/<profile-name>/`. To create one, give Codex a PDF or
+Markdown résumé and ask it to use the
+[`initialize-knowledge-base`](.agents/skills/initialize-knowledge-base/SKILL.md)
+skill.
 
-Once the résumé is in place, use these skills for your instance:
+> [!IMPORTANT]
+> Before opening a pull request, inspect the complete diff and keep all private
+> instance information out of it, including résumés, retrieval records, evaluation
+> questions, interview material, and personal links. Public contributions should use
+> only the fictional `instance/example/` profile.
 
-- [`bootstrap-personal-knowledge`](.agents/skills/bootstrap-personal-knowledge/SKILL.md)
-  asks interview-style questions based on your résumé and turns your answers
-  into knowledge documents. Building a detailed knowledge base can take several
-  sessions, so voice input may be more comfortable than typing.
-- [`bootstrap-public-knowledge`](.agents/skills/bootstrap-public-knowledge/SKILL.md)
-  finds public sources connected to your work and records them in a research
-  ledger.
-- [`curate-public-knowledge`](.agents/skills/curate-public-knowledge/SKILL.md)
-  lets you review the research ledger and turns accepted material into
-  knowledge documents.
-- [`generate-resume-bridges`](.agents/skills/generate-resume-bridges/SKILL.md)
-  creates compact résumé-based summaries that improve retrieval when an
-  answer draws on information from several sections.
+For example:
 
-Once you are happy with the knowledge base, set
-`MAAS_INSTANCE_DIR=instances/<your-name>` in `.env` and run `pnpm dev`.
-Enable LangSmith tracing to inspect and tune retrieval performance.
+> Use the initialize-knowledge-base skill to create my profile at
+> `instance/my-profile` from `/path/to/resume.pdf`.
 
-To deploy your instance, We recommend a VPS with at least 2 GB of RAM.
+The skill first creates a complete, immediately usable profile from the résumé. It
+retains the original input, normalizes its text, configures the profile's public
+presentation, writes the live retrieval records, and creates 10 résumé-informed
+questions for evaluating evidence retrieval. It validates this baseline before any
+optional enrichment, so an interrupted session still leaves a working profile.
+
+Codex can then add clearly matched information from authoritative public sources and
+ask up to three focused interview questions to fill important gaps. Useful answers
+are rewritten as concise professional prose and added immediately; rough replies are
+never stored verbatim. Corrections update the same live index without a separate
+build or publication step.
+
+Each profile has a deliberately small structure:
+
+```text
+instance/my-profile/
+|-- instance.yaml
+|-- evaluations/evidence_required.json
+|-- inputs/resume/
+|   |-- original
+|   |-- normalized.md
+|   `-- metadata.json
+`-- index/records.json
+```
+
+`instance.yaml` controls the name, disclosure, welcome text, suggested questions,
+and public links shown by the web app. `index/records.json` is the retrieval base used
+directly by the API; each record contains only a stable ID, subject, body, and optional
+canonical URL. The evaluation file is used by the live evaluation command and is not
+loaded during normal web requests.
+
+Set the new profile as the local default in `.env`:
+
+```dotenv
+MAAS_INSTANCE_DIR=instance/my-profile
+```
+
+The skill uses the deterministic, atomic commands in `tools/knowledge-cli`. You can
+also inspect or validate a profile directly:
+
+```bash
+cd tools/knowledge-cli
+uv sync --all-groups
+uv run maas knowledge status --instance /absolute/path/to/instance
+uv run maas knowledge validate --instance /absolute/path/to/instance
+```
+
+Run the profile's 10 evidence-required questions through the production conversation
+path with:
+
+```bash
+pnpm --filter @me-as-a-service/api eval:evidence-required-response
+```
+
+The evaluation prints only the final responses, not classification results, retrieval
+queries, or retrieved records.
+
+To deploy your instance, we recommend a VPS with at least 2 GB of RAM.
 You will need a domain name, an OpenAI or OpenRouter API key, and
 production secrets kept outside Git. See the
-[AWS Lightsail deployment guide](doc/DEPLOYMENT_LIGHTSAIL.md) for an example deployment.
+[production deployment guide](doc/PRODUCTION_DEPLOYMENT.md) for the complete runbook.
 
 ## Changelog
 
-- [2026-03-08] Initial public release
+- [2026-09-15] Simplified chat routing to two model calls with direct local retrieval;
+  added the live JSON knowledge index, skill-led profile creation, instance-specific
+  evaluations, reusable example profile, and updated production operations.
+- [2026-08-03] Initial public release
 
 ## Contribution
 
@@ -216,4 +277,10 @@ development workflow and contribution guidelines.
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+The software, documentation, tooling, and fictional `instance/example/` profile are
+licensed under Apache-2.0. See [LICENSE](LICENSE).
+
+Personal profile content, source documents, biographical writing, interview material,
+voice, and likeness are not covered by the Apache-2.0 license unless an adjacent
+license explicitly says otherwise. Private instance material must not be copied or
+redistributed.

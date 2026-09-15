@@ -1,4 +1,0 @@
-interface:
-  display_name: "Curate public knowledge"
-  short_description: "Review research ledgers and publish public knowledge"
-  default_prompt: "Use $curate-public-knowledge to review pending results in the selected instance's public-evidence research ledgers, get explicit user accept/reject decisions, and fetch and rewrite each accepted source into one Markdown file per question under knowledge/public/ with a structured Further reading section."
