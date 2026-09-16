@@ -1,7 +1,16 @@
 <div align="center">
   <img src="doc/assets/mark.svg" width="80" alt="Me-as-a-Service mark">
   <h1>Me-as-a-Service</h1>
-  <p><em>Because my résumé doesn’t answer follow-up questions.</em></p>
+  <p>
+    <em>Because a résumé doesn’t answer follow-up questions.</em><br>
+    Turn yours into an evidence-grounded conversational portfolio that answers
+    them without inventing personal claims.
+  </p>
+  <p>
+    <strong><a href="https://chat.danjia.me/">Try the live profile</a></strong>
+    &nbsp;&middot;&nbsp;
+    <strong><a href="#create-your-own-profile">Create your own profile</a></strong>
+  </p>
   <p>
     <a href="https://chat.danjia.me/"><img src="https://img.shields.io/website?url=https%3A%2F%2Fchat.danjia.me%2F&amp;up_message=online&amp;up_color=149477&amp;down_message=offline&amp;down_color=critical&amp;label=live%20instance" alt="Live instance status"></a>
     <a href="https://github.com/danjia21/me-as-a-service/actions/workflows/ci.yml"><img src="https://github.com/danjia21/me-as-a-service/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status"></a>
@@ -11,11 +20,10 @@
   </p>
 </div>
 
-Me-as-a-Service turns a résumé and other documented work into an
-evidence-grounded conversational portfolio. Visitors can ask follow-up
-questions instead of searching through static pages. Behind the conversation,
-the application handles multi-turn context, RAG, evaluation, observability,
-and privacy controls.
+Me-as-a-Service is an open-source engine for building a conversational profile
+from a résumé and other documented work. Instead of searching through static
+pages, visitors can ask broad questions, follow up naturally, and change the
+level of technical detail without restating the context.
 
 Profile content stays separate from the code, so the same open-source system
 can represent different people. The assistant speaks in the first person,
@@ -27,6 +35,23 @@ personal or connected public questions are answered without guessing.
 > [!IMPORTANT]
 > The assistant represents a person; it is not the person. Never add private or
 > sensitive material to the public knowledge base.
+
+## Start here
+
+| I want to…                     | Start with…                                                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| See the experience             | [Talk to Dan's live AI representation](https://chat.danjia.me/) and ask a suggested question, then follow up in your own words.                              |
+| Build my own profile           | [Create a profile from a PDF or Markdown résumé](#create-your-own-profile) using the included Codex or Claude Code skill and editable local knowledge index. |
+| Understand the implementation  | Read [How it works](#how-it-works) for the fixed two-call workflow and local retrieval design.                                                               |
+| Run or contribute to the stack | Follow the [Quick start](#quick-start), then review the open issues and [contribution guide](CONTRIBUTING.md).                                               |
+
+## Who it is for
+
+Me-as-a-Service is designed for engineers, researchers, consultants, and other
+professionals whose work cannot be explained well by a list of résumé bullets.
+It is also a reference implementation for developers exploring conversational
+RAG, grounded generation, evaluation, privacy boundaries, and production LLM
+operations without introducing a dynamic agent loop.
 
 ## How it works
 
@@ -185,18 +210,10 @@ deployment. Keep credentials and other secrets out of Git.
 
 ## Create your own profile
 
-Profiles live under `instance/<profile-name>/`. To create one, give Codex a PDF or
-Markdown résumé and ask it to use the
+Profiles live under `instance/<profile-name>/`. To create one, give Codex or Claude
+Code a PDF or Markdown résumé and ask it to use the
 [`initialize-knowledge-base`](.agents/skills/initialize-knowledge-base/SKILL.md)
-skill.
-
-> [!IMPORTANT]
-> Before opening a pull request, inspect the complete diff and keep all private
-> instance information out of it, including résumés, retrieval records, evaluation
-> questions, interview material, and personal links. Public contributions should use
-> only the fictional `instance/example/` profile.
-
-For example:
+skill. For example:
 
 > Use the initialize-knowledge-base skill to create my profile at
 > `instance/my-profile` from `/path/to/resume.pdf`.
@@ -207,11 +224,11 @@ presentation, writes the live retrieval records, and creates 10 résumé-informe
 questions for evaluating evidence retrieval. It validates this baseline before any
 optional enrichment, so an interrupted session still leaves a working profile.
 
-Codex can then add clearly matched information from authoritative public sources and
-ask up to three focused interview questions to fill important gaps. Useful answers
-are rewritten as concise professional prose and added immediately; rough replies are
-never stored verbatim. Corrections update the same live index without a separate
-build or publication step.
+Codex or Claude Code can then add clearly matched information from authoritative
+public sources and ask up to three focused interview questions to fill important
+gaps. Useful answers are rewritten as concise professional prose and added
+immediately; rough replies are never stored verbatim. Corrections update the same
+live index without a separate build or publication step.
 
 Each profile has a deliberately small structure:
 
@@ -255,9 +272,6 @@ path with:
 pnpm --filter @me-as-a-service/api eval:evidence-required-response
 ```
 
-The evaluation prints only the final responses, not classification results, retrieval
-queries, or retrieved records.
-
 To deploy your instance, we recommend a VPS with at least 2 GB of RAM.
 You will need a domain name, an OpenAI or OpenRouter API key, and
 production secrets kept outside Git. See the
@@ -274,6 +288,12 @@ production secrets kept outside Git. See the
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
 development workflow and contribution guidelines.
+
+> [!IMPORTANT]
+> Before opening a pull request, inspect the complete diff and keep all private
+> instance information out of it, including résumés, retrieval records, evaluation
+> questions, interview material, and personal links. Public contributions should use
+> only the fictional `instance/example/` profile.
 
 ## License
 
